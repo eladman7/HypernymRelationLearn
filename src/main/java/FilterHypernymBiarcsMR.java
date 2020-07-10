@@ -61,7 +61,7 @@ public class FilterHypernymBiarcsMR {
         job.setJarByClass(FilterHypernymBiarcsMR.class);
         job.setMapperClass(MapperClass.class);
         job.setPartitionerClass(PartitionerClass.class);
-//        job.setCombinerClass(ReducerClass.class);
+//      job.setCombinerClass(ReducerClass.class);
         job.setReducerClass(ReducerClass.class);
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Text.class);
@@ -72,7 +72,7 @@ public class FilterHypernymBiarcsMR {
 
         Path oneGram = new Path(args[0]);
         Path twoGram = new Path(args[1]);
-//        Path decs = new Path(args[2]);
+//      Path decs = new Path(args[2]);
         Path outputPath = new Path(args[2]);
         MultipleInputs.addInputPath(job, oneGram, TextInputFormat.class, MapperClass.class);
         MultipleInputs.addInputPath(job, twoGram, TextInputFormat.class, MapperClass.class);
