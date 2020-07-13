@@ -1,0 +1,4 @@
+chair	furniture/NN/acomp/0 like/VB/xcomp/1 chair/NN/prep/2
+chair	furniture/pobj/acomp/0 like/VB/xcomp/1 tahat/NN/prep/2
+furniture	furniture/NN/acomp/0 as/JJ/prep/1 sofa/NN/advmod/2 chair/NN/xcomp/2
+able	able/NN/acomp/0 dramatize/NN/xcomp/1 them/PRP/dobj/2
