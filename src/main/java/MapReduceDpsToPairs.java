@@ -17,54 +17,60 @@ public class MapReduceDpsToPairs {
 
     public static class MapperClass extends Mapper<LongWritable, Text, Text, Text> {
 
-        @Override
-        protected void setup(Context context) {
-
-        }
-
         // TODO: 13/07/2020 add stemmer.
         @Override
-
         public void map(LongWritable lineId, Text gram, Context context) throws IOException, InterruptedException {
-            String[] splittedNGram = gram.toString().trim().split("\\s+");
-            StringBuilder ngram = new StringBuilder("");
-            String key = splittedNGram[0] + " " + splittedNGram[1];
-            for (int i = 3; i< splittedNGram.length; i++) {
-                ngram.append(splittedNGram[i]);
+            String[] splitNGram = gram.toString().trim().split("\\s+");
+            int KEY_FIRST = 0; // FIRST KEY PART INDEX IN STRING
+            int KEY_SECOND = 1;// SEC KEY PART INDEX IN STRING
+            String key = splitNGram[KEY_FIRST] + " " + splitNGram[KEY_SECOND];
+            String dp = extractDps(key, extractNgram(splitNGram));
+            context.write(new Text(dp), new Text(key));
+        }
+
+        private String extractNgram(String[] splitNGram) {
+            StringBuilder ngram = new StringBuilder();
+            int GRAM_INDEX = 3; // NGRAM INDEX IN STRING
+            for (int i = GRAM_INDEX; i< splitNGram.length; i++) {
+                ngram.append(splitNGram[i]);
                 ngram.append('\t');
             }
-
-            String dp = extractDps(key, ngram.toString());
-            context.write(new Text(dp), new Text(key));
-
+            return ngram.toString();
         }
 
 
         private String extractDps(String key, String ngram) {
+            String[] splitNGram = ngram.trim().split("\\s+");
             HashMap<String, String> graph = new HashMap<>();
-            String[] splittedNGram = ngram.trim().split("\\s+");
+            buildGraph(graph, splitNGram);  // Build the graph from the ngram
+            return generalizeGraphString(key,  build_string_from_graph(key, graph, splitNGram));
+        }
 
-            for(int index = 0; index < splittedNGram.length; index++) {
-                String word = splittedNGram[index];   // Take only the noun
-                graph.put(getWord(word), splittedNGram[Integer.valueOf(get_next(word))]);
-                if(index != 0) {
-                    graph.put(word.split("/")[0], splittedNGram[Integer.valueOf(get_next(word)) - 1]);
-                }
-            }
-
+        private StringBuilder build_string_from_graph(String key, HashMap<String, String> graph, String[]splitNGram) {
             String key_first = key.split("\\s+")[0]; // From
             String key_sec = key.split("\\s+")[1];  // To
             String next = graph.get(key_first);
-            StringBuilder dp = new StringBuilder(getFullGram(splittedNGram, key_first) + " ");
-            StringBuilder dp_res = new StringBuilder();
-            // TODO: 13/07/2020 What if there are no path?
-            while (!next.split("/")[0].equals(key_sec)) {
+
+            StringBuilder dp = new StringBuilder(getFullGram(splitNGram, key_first) + " ");
+            while (!isLastNode(key_sec, next)) {
                 dp.append(next).append(" ");
                 next = graph.get(getWord(next)); // Move to the next node.
             }
             dp.append(next);
-            System.out.println(dp.toString());
+            return dp;
+        }
+
+
+        private boolean isLastNode(String key_sec, String next) {
+            return next.split("/")[0].equals(key_sec);
+        }
+
+        private String generalizeGraphString(String key, StringBuilder dp) {
+            String key_first = key.split("\\s+")[0]; // From
+            String key_sec = key.split("\\s+")[1];  // To
+            StringBuilder dp_res = new StringBuilder();
             String[] splitted = dp.toString().split("\\s+");
+
             for(String str : splitted) {
                 /* TODO: 13/07/2020 should be X?!? */
                 if(LingusticUtils.isNoun(str) && (str.contains(key_first) || str.contains(key_sec))) {
@@ -76,9 +82,19 @@ public class MapReduceDpsToPairs {
             return dp_res.toString();
         }
 
+        private void buildGraph(HashMap<String, String> graph, String[] splitNGram) {
+            for(int index = 0; index < splitNGram.length; index++) {
+                String word = splitNGram[index];   // Take only the noun
+                graph.put(getWord(word), splitNGram[Integer.parseInt(get_next(word))]);
+                if(index != 0) {
+                    graph.put(word.split("/")[0], splitNGram[Integer.parseInt(get_next(word)) - 1]);
+                }
+            }
+        }
+
         private String get_next(String gram) {
-            String[] splittedNGram = gram.trim().split("/");
-            return splittedNGram[splittedNGram.length - 1];
+            String[] splitNGram = gram.trim().split("/");
+            return splitNGram[splitNGram.length - 1];
 
         }
 
@@ -96,43 +112,21 @@ public class MapReduceDpsToPairs {
         }
     }
 
-    public static class CombinerClass extends Reducer<Text, Text, Text, Text> {
-        @Override
-        public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-
-        }
-    }
 
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
-        public String currentKey;
-
-        public void setup(Context context) {
-            currentKey = "";
-        }
-
-
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            System.out.println("in reducer");
-        }
-
-
-        public void cleanup(Context context) {
+            for( Text pair : values) {
+                context.write(key, pair);
+            }
         }
     }
 
-    public static String getTag(Text key) {
-        return String.valueOf(key.toString().charAt(key.toString().length() - 1));
-    }
-
-    public static String extractTag(Text key) {
-        return key.toString().substring(0, key.toString().length() - 1);
-    }
 
     public static class PartitionerClass extends Partitioner<Text, Text> {
         @Override
         public int getPartition(Text key, Text value, int numPartitions) {
-            return (extractTag(key).hashCode() & Integer.MAX_VALUE) % numPartitions;
+            return (key.hashCode() & Integer.MAX_VALUE) % numPartitions;
         }
     }
 
