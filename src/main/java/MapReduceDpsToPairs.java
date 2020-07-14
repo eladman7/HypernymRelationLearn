@@ -11,6 +11,7 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class MapReduceDpsToPairs {
@@ -69,9 +70,9 @@ public class MapReduceDpsToPairs {
             String key_first = key.split("\\s+")[0]; // From
             String key_sec = key.split("\\s+")[1];  // To
             StringBuilder dp_res = new StringBuilder();
-            String[] splitted = dp.toString().split("\\s+");
+            String[] split = dp.toString().split("\\s+");
 
-            for(String str : splitted) {
+            for(String str : split) {
                 /* TODO: 13/07/2020 should be X?!? */
                 if(LingusticUtils.isNoun(str) && (str.contains(key_first) || str.contains(key_sec))) {
                     dp_res.append(str.replace(str.split("/")[0], "X")).append(" ");
@@ -114,12 +115,37 @@ public class MapReduceDpsToPairs {
 
 
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
+        private int dpMin;
+
+        @Override
+        protected void setup(Context context) throws IOException, InterruptedException {
+            super.setup(context);
+            Configuration conf = context.getConfiguration();
+            int min = Integer.parseInt(conf.get("dpMin"));
+            dpMin = min > 0 ? min : 1;  // assert that dpMin > 0, if not assign 1.
+        }
+
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            for( Text pair : values) {
-                context.write(key, pair);
+            ArrayList<Text> firstDps = new ArrayList<>(dpMin);
+
+            for(int i = 0; i < dpMin; i++) {    // Add the first - dpMin - dp's to the list
+                if(values.iterator().hasNext())
+                    firstDps.add(values.iterator().next());
+            }
+
+            if (firstDps.size() == dpMin){ // Write only if there was at least dpMin dp's
+              // Write the first Dps pairs
+                for (Text pair : firstDps) {
+                    context.write(key, pair);
+                }
+                // Write the rest Dps.
+                for(Text pair : values) {
+                    context.write(key, pair);
+                }
             }
         }
+
     }
 
 
@@ -133,6 +159,9 @@ public class MapReduceDpsToPairs {
 
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
+        conf.set("dpMin", args[1]); // args 1 contains the dpmin
+
+
         Job job = new Job(conf, "Make dps to pairs table");
         job.setJarByClass(MapReduceDpsToPairs.class);
         job.setMapperClass(MapperClass.class);
@@ -146,7 +175,7 @@ public class MapReduceDpsToPairs {
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
         Path input_path = new Path(args[0]);
-        Path outputPath = new Path(args[1]);
+        Path outputPath = new Path(args[2]);
         FileInputFormat.addInputPath(job, input_path);
         FileOutputFormat.setOutputPath(job, outputPath);
 
