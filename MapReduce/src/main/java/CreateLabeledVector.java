@@ -61,14 +61,12 @@ public class CreateLabeledVector {
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
         private Boolean currentLabel;
         private String currentPair;
-        //        private long vec_size;
         private StringBuilder vectorStr;
 
         public void setup(Context context) {
             currentLabel = null;
             currentPair = "";
             vectorStr = new StringBuilder();
-//            vec_size = Integer.parseInt(context.getConfiguration().get(VEC_SIZE_NAME));
         }
 
         // input: <pair dp_index, count>
@@ -88,17 +86,14 @@ public class CreateLabeledVector {
             }
             if (key.toString().contains(FIRST_TAG)) {
                 currentLabel = Boolean.parseBoolean(values.iterator().next().toString());
-                vectorStr.append("[");
             } else {
                 vectorStr.append(values.iterator().next().toString());
-                vectorStr.append(", ");
+                vectorStr.append(",");
             }
         }
 
         private void writeVector(Context context) throws IOException, InterruptedException {
-            vectorStr.delete(vectorStr.length() - 2, vectorStr.length());
-            vectorStr.append("]");
-            context.write(new Text(vectorStr.toString()), new Text(String.valueOf(currentLabel)));
+            context.write(new Text(vectorStr.toString() + currentLabel), null);
         }
 
         public void cleanup(Context context) throws IOException, InterruptedException {

@@ -17,7 +17,7 @@ import java.util.Iterator;
 /**
  * #3 MR app
  * Input: labeled pairs set and output of FilterAllDpsByDpmin
- * Map - write key as is
+ * Map - write key as is - stem pair from annotated set
  * Reduce - write as is while ignores unlabeled pairs
  * arguments: 0- FilterAllDpsByDpmin_out path, 1- labeled pairs path, 2-output path
  */
@@ -35,7 +35,8 @@ public class JoinPairLabel {
             String[] splittedGram = gram.toString().split("\\s+");
             // labeled pair table e.g <dog animal true>
             if (splittedGram.length == 3) {
-                context.write(new Text(splittedGram[0] + "\t" + splittedGram[1] + FIRST_TAG), new Text(splittedGram[2]));
+                context.write(new Text(LingusticUtils.stem(splittedGram[0]) + "\t" +
+                        LingusticUtils.stem(splittedGram[1]) + FIRST_TAG), new Text(splittedGram[2]));
             }
             // first MR out e.g <dog	animal	0:X/NN/prep/2-like/VB/xcomp/1-Y/NN/acomp/0:NGRAM1>
             else {

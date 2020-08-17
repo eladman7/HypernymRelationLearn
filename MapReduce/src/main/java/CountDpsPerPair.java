@@ -145,6 +145,7 @@ public class CountDpsPerPair {
 
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
+        // setting max vector size from MR2 to all mappers׳ context in this stage
         List<String> strings = Files.readAllLines(Paths.get(args[1]));
         conf.set(VEC_SIZE_NAME, strings.get(0).split("\\s+")[1]);
         Job job = new Job(conf, "Count dps per pair");
