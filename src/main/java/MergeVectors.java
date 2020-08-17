@@ -1,4 +1,3 @@
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -13,13 +12,15 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
 
 public class MergeVectors {
-    public static class MapperClass extends Mapper<LongWritable, Text, Text, Text> {
+    /***
+     * Simple Map Reduce ->
+     * Input: Folder with all the vectors files
+     * Output: One file, contain all the vectors - concatenated.
+     */
 
+    public static class MapperClass extends Mapper<LongWritable, Text, Text, Text> {
         @Override
         public void map(LongWritable lineId, Text gram, Context context) throws IOException, InterruptedException {
             context.write(new Text("KEY"), gram);
@@ -56,13 +57,10 @@ public class MergeVectors {
         job.setOutputValueClass(Text.class);
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
-
-        Path inputPath = new Path(args[0]);
+        Path input1 = new Path(args[0]);
         Path outputPath = new Path(args[1]);
-
-        FileInputFormat.addInputPath(job, inputPath);
+        FileInputFormat.addInputPath(job, input1);
         FileOutputFormat.setOutputPath(job, outputPath);
-
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
