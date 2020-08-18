@@ -2,8 +2,7 @@ public class Properties {
     // consts
     public static String keyPair = "dsp_key";
     public static String DPMIN = "5";
-    // todo:waiting for an answer in forum
-    public static String BIARC_PATH = "https://biarcs.s3.amazonaws.com/biarcs.05-of-99";
+    public static String BIARC_PATH = "s3n://biarcs/biarcs.05-of-99";
 
     // buckets
     public static String OUT_BUCKET = "s3n://ass3-output-bucket";

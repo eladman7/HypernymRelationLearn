@@ -1,6 +1,10 @@
 /.idea
 *.iml
 EMRRunner/target
+EMRRunner/src/test
 MapReduce/target
+MapReduce/src/test
 WekaRunner/target
+WekaRunner/src/test
 /target
+/src/test
