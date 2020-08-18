@@ -7,7 +7,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
@@ -48,6 +48,7 @@ public class FilterAllDpsByDpmin {
 
         public void setup(Context context) {
             numOfReducers = context.getNumReduceTasks();
+            System.out.println("num of reducers: " + numOfReducers);
             counters = new long[numOfReducers];
         }
 
@@ -224,9 +225,13 @@ public class FilterAllDpsByDpmin {
 
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            System.out.println("reducer class: " + this.getClass().getName());
+            System.out.println("reducer class id: " + System.identityHashCode(this));
             if (key.toString().contains(COUNTER_TAG)) {
-                initialOffset = Long.parseLong(values.iterator().next().toString());
+                long offsetsSum = 0;
+                for (Text value : values) {
+                    offsetsSum += Long.parseLong(value.toString());
+                }
+                initialOffset = offsetsSum;
                 return;
             }
             // count values till reaching DPMin
@@ -287,7 +292,8 @@ public class FilterAllDpsByDpmin {
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
-        job.setInputFormatClass(TextInputFormat.class);
+        //TextInputFormat
+        job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
         Path biarcsInput = new Path(args[0]);

@@ -2,4 +2,5 @@
 *.iml
 EMRRunner/target
 MapReduce/target
+WekaRunner/target
 /target
