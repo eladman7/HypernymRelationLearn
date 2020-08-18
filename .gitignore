@@ -1,3 +1,5 @@
 /.idea
 *.iml
+EMRRunner/target
+MapReduce/target
 /target

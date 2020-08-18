@@ -24,8 +24,32 @@ import java.util.*;
  */
 public class FilterAllDpsByDpmin {
     public static String DPMIN_NAME = "DPMIN";
+    public static String COUNTER_TAG = "!";
+    public static String VALUES_TAG = "*";
+
+    public static Text removeTag(Text taggedKey) {
+        return new Text(taggedKey.toString().replace(COUNTER_TAG, "").replace(VALUES_TAG, "").trim());
+    }
+
+    public static class PartitionerClass extends Partitioner<Text, Text> {
+        @Override
+        public int getPartition(Text key, Text value, int numPartitions) {
+            return partitionForValue(key, numPartitions);
+        }
+
+        public static int partitionForValue(Text value, int numPartitions) {
+            return (removeTag(value).hashCode() & Integer.MAX_VALUE) % numPartitions;
+        }
+    }
 
     public static class MapperClass extends Mapper<LongWritable, Text, Text, Text> {
+        private long[] counters;
+        int numOfReducers;
+
+        public void setup(Context context) {
+            numOfReducers = context.getNumReduceTasks();
+            counters = new long[numOfReducers];
+        }
 
         @Override
         public void map(LongWritable lineId, Text gram, Context context) throws IOException, InterruptedException {
@@ -36,8 +60,21 @@ public class FilterAllDpsByDpmin {
             Map<String, String> pairToDp = buildDpsFromPairs(allNounPairsByNgram, stemmedGram);
             // example for writing from design doc: <<x like y>:dog-animal , [ngram1]>
             // or  <<x like y> , [dog-animal:ngram1]>
+            Text taggedKey;
             for (String pair : pairToDp.keySet()) {
-                context.write(new Text(pairToDp.get(pair)), new Text(pair + ":" + stemmedGram));
+                taggedKey = new Text(VALUES_TAG + pairToDp.get(pair));
+                context.write(taggedKey, new Text(pair + ":" + stemmedGram));
+                counters[PartitionerClass.partitionForValue(taggedKey, numOfReducers)]++;
+            }
+        }
+
+        @Override
+        public void cleanup(Context context) throws IOException, InterruptedException {
+            for (int c = 0; c < counters.length - 1; c++) {
+                if (counters[c] > 0) {
+                    context.write(new Text(COUNTER_TAG + (c + 1)), new Text(String.valueOf(counters[c])));
+                }
+                counters[c + 1] += counters[c];
             }
         }
 
@@ -63,7 +100,6 @@ public class FilterAllDpsByDpmin {
             }
             return new Text(gramSplit[0] + "\t" + sb.toString());
         }
-
 
         // todo: if we found path for pair <a,b> but not for <b,a>
         //  should we associate both pairs with this dp ?
@@ -170,58 +206,71 @@ public class FilterAllDpsByDpmin {
     }
 
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
-        private long currentCounter;
-        private long vectorLengthCounter;
+        private long currentDPValuesCounter;
+        private String currentKey;
         private MultipleOutputs<Text, Text> mo;
         private int DPMIN;
+        private long initialOffset;
+        private long uniqueDPId;
 
         public void setup(Context context) {
-            currentCounter = 0;
-            vectorLengthCounter = 0;
             mo = new MultipleOutputs<>(context);
             DPMIN = Integer.parseInt(context.getConfiguration().get(DPMIN_NAME));
+            currentDPValuesCounter = 0;
+            initialOffset = 0;
+            currentKey = "";
+            uniqueDPId = -1;
         }
-
 
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+            System.out.println("reducer class: " + this.getClass().getName());
+            if (key.toString().contains(COUNTER_TAG)) {
+                initialOffset = Long.parseLong(values.iterator().next().toString());
+                return;
+            }
+            // count values till reaching DPMin
             List<String> tempList = new ArrayList<>(DPMIN);
             for (Text pairWithNgram : values) {
-                currentCounter++;
+                currentDPValuesCounter++;
                 tempList.add(pairWithNgram.toString());
-                if (currentCounter == DPMIN) break;
+                if (currentDPValuesCounter == DPMIN) break;
             }
-            if (currentCounter < DPMIN) return;
-            // exmaple from doc: Write(<dog, animal> ,[ 0:<x like y>:ngram1]>)
+            if (currentDPValuesCounter < DPMIN) return;
+            // key changed
+            String newKey = removeTag(key);
+            if (!newKey.equals(currentKey)) {
+                uniqueDPId++;
+            }
+            // example from doc: Write(<dog, animal> ,[ 0:<x like y>:ngram1]>)
             // write temp list
-            for (int i = 0; i < currentCounter; i++) {
+            String dpId = String.valueOf(initialOffset + uniqueDPId);
+            for (int i = 0; i < currentDPValuesCounter; i++) {
                 String[] splitPairWithNgram = tempList.get(i).split(":");
-                mo.write(new Text(splitPairWithNgram[0]), new Text(i + ":" + key.toString() + ":" + splitPairWithNgram[1]),
+                mo.write(new Text(splitPairWithNgram[0]), new Text(dpId + ":" + newKey + ":"
+                                + splitPairWithNgram[1]),
                         "pairsToDps/pairsToDp");
+            }
+            if (!newKey.equals(currentKey)) {
+                currentDPValuesCounter = 0;
             }
             // write the rest of the values
             for (Text pairWithNgram : values) {
                 String[] splitPairWithNgram = pairWithNgram.toString().split(":");
                 mo.write(new Text(splitPairWithNgram[0]),
-                        new Text(currentCounter + ":" + key.toString() + ":" + splitPairWithNgram[1]),
+                        new Text(dpId + ":" + newKey + ":" + splitPairWithNgram[1]),
                         "pairsToDps/pairsToDp");
-                currentCounter++;
             }
-            if (vectorLengthCounter < currentCounter) vectorLengthCounter = currentCounter;
-            currentCounter = 0;
+        }
+
+        private String removeTag(Text key) {
+            return key.toString().replace(VALUES_TAG, "");
         }
 
 
         public void cleanup(Context context) throws IOException, InterruptedException {
-            mo.write(new Text("vec_size"), new Text(String.valueOf(vectorLengthCounter)), "vecSizes/vecSize");
+            mo.write(new Text("vec_size"), new Text(String.valueOf(uniqueDPId + 1)), "vecSizes/vecSize");
             mo.close();
-        }
-    }
-
-    public static class PartitionerClass extends Partitioner<Text, Text> {
-        @Override
-        public int getPartition(Text key, Text value, int numPartitions) {
-            return (key.hashCode() & Integer.MAX_VALUE) % numPartitions;
         }
     }
 

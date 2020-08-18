@@ -125,6 +125,15 @@ public class CountDpsPerPair {
             }
         }
 
+        @Override
+        public void cleanup(Context context) throws IOException, InterruptedException {
+            if (lastIndexOfPair + 1 < vec_size) {
+                for (long i = lastIndexOfPair + 1; i < vec_size; i++) {
+                    context.write(new Text(currentPair), new Text(i + "," + "0"));
+                }
+            }
+        }
+
         private String extractPairFromKey(String key) {
             String[] split = key.split("\\s+");
             return split[0] + "\t" + split[1];
