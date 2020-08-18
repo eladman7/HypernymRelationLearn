@@ -57,6 +57,7 @@ public class MergeVectors {
         job.setOutputValueClass(Text.class);
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
+
         Path input1 = new Path(args[0]);
         Path outputPath = new Path(args[1]);
         FileInputFormat.addInputPath(job, input1);

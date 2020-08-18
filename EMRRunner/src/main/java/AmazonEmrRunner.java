@@ -43,6 +43,10 @@ public class AmazonEmrRunner {
         String[] args5 = {Properties.Step5Arg1, Properties.Step5Arg2};
         stepConfigs.add(buildStep(args5, "CreateLabeledVector", "Create labeled examples"));
 
+        // STEP6
+        String[] args6 = {Properties.Step6Arg1, Properties.Step6Arg2};
+        stepConfigs.add(buildStep(args6, "MergeVectors", "Merge labeled examples"));
+
         // run
         RunJobFlowRequest runFlowRequest = new RunJobFlowRequest()      // collection of steps
                 .withName("Full Run Big Data")                                   //cluster name

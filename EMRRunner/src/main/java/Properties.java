@@ -34,4 +34,8 @@ public class Properties {
     // step5 - CreateLabeledVector
     public static String Step5Arg1 = OUT_BUCKET + "/CountDpsPerPair_out";
     public static String Step5Arg2 = OUT_BUCKET + "/CreateLabeledVector_out";
+
+    // step6 - MergeVectors
+    public static String Step6Arg1 = OUT_BUCKET + "/CreateLabeledVector_out";
+    public static String Step6Arg2 = OUT_BUCKET + "/MergeVectors_out";
 }
