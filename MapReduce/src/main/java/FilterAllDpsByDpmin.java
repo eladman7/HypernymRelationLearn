@@ -303,7 +303,10 @@ public class FilterAllDpsByDpmin {
                 tempList.add(pairWithNgram.toString());
                 if (currentDPValuesCounter == DPMIN) break;
             }
-            if (currentDPValuesCounter < DPMIN) return;
+            if (currentDPValuesCounter < DPMIN) {
+                currentDPValuesCounter = 0;
+                return;
+            }
             // key changed
             String newKey = removeTag(key);
             if (!newKey.equals(currentKey)) {
