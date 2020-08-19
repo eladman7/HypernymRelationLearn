@@ -335,10 +335,12 @@ public class FilterAllDpsByDpmin {
         Path biarcsInput = new Path(args[0]);
         Path outputPath = new Path(args[1]);
         FileInputFormat.addInputPath(job, biarcsInput);
+
+        // multiple outputs
         MultipleOutputs.addNamedOutput(job, "pairsToDps", TextOutputFormat.class,
-                Text.class, LongWritable.class);
+                Text.class, Text.class);
         MultipleOutputs.addNamedOutput(job, "vecSizes", TextOutputFormat.class,
-                Text.class, LongWritable.class);
+                Text.class, Text.class);
         FileOutputFormat.setOutputPath(job, outputPath);
 
         System.exit(job.waitForCompletion(true) ? 0 : 1);
