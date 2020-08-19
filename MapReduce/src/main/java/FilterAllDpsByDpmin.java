@@ -56,6 +56,7 @@ public class FilterAllDpsByDpmin {
 
         @Override
         public void map(LongWritable lineId, Text gram, Context context) throws IOException, InterruptedException {
+            gram = removeBiarcTail(gram);
             if (!isValidNgram(gram)) return;
             Text stemmedGram = stemNouns(gram);
             // for each pair we get its both variations <a,b>, <b,a>
@@ -100,7 +101,6 @@ public class FilterAllDpsByDpmin {
         }
 
         private Text stemNouns(Text gram) {
-            gram = removeBiarcTail(gram);
 //            animal	animal/NN/acomp/0 like/VB/xcomp/1 dog/NN/prep/2
             String[] gramSplit = gram.toString().split("\\s+");
             StringBuilder sb = new StringBuilder();
@@ -216,8 +216,23 @@ public class FilterAllDpsByDpmin {
                 } else dp.append(currentVal);
                 currentKey = extractWord(currentVal);
             } while (!(extractWord(currentVal).equals(target)));
-            return dp.toString();
+            return cleanDP(dp.toString());
         }
+
+        // input: X/NN/advmod/2-as/JJ/prep/1-Y/NN/acomp/0
+        // output: X/advmod-as/prep-Y/acomp
+        private String cleanDP(String rawDp) {
+            StringBuilder cleanDp = new StringBuilder();
+            String[] nodes = rawDp.split("-");
+            for (String node : nodes) {
+                String[] splittedNode = node.split("/");
+                cleanDp.append(splittedNode[0]).append("/").append(splittedNode[2]).append("-");
+            }
+            // remove last '-'
+            cleanDp.deleteCharAt(cleanDp.length() - 1);
+            return cleanDp.toString();
+        }
+
 
         private List<String> createAllNounPairsByNgram(Text gram) {
             List<String> result = new ArrayList<>();
