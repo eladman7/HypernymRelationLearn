@@ -1,3 +1,5 @@
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -54,6 +56,7 @@ public class FilterAllDpsByDpmin {
 
         @Override
         public void map(LongWritable lineId, Text gram, Context context) throws IOException, InterruptedException {
+            if (!isValidNgram(gram)) return;
             Text stemmedGram = stemNouns(gram);
             // for each pair we get its both variations <a,b>, <b,a>
             List<String> allNounPairsByNgram = createAllNounPairsByNgram(stemmedGram);
@@ -77,6 +80,23 @@ public class FilterAllDpsByDpmin {
                 }
                 counters[c + 1] += counters[c];
             }
+        }
+
+        // filtering cases like this:
+        // a missing word
+        // are	are/VBP/ROOT/0 branch/NN/nn/3 //NN/attr/1	10	1968,3	1974,2	1981,4	1993,1
+        private boolean isValidNgram(Text gram) {
+            String[] splittedGram = gram.toString().split("\\s+");
+            if (StringUtils.isEmpty(splittedGram[0])) return false;
+            for (int i = 1; i < splittedGram.length; i++) {
+                if (validateWordDesc(splittedGram[i])) return false;
+            }
+            return true;
+        }
+
+        // filtering cases like this: //NN/attr/1
+        private boolean validateWordDesc(String wordDesc) {
+            return wordDesc.split("/").length == 4;
         }
 
         private Text stemNouns(Text gram) {
@@ -120,6 +140,7 @@ public class FilterAllDpsByDpmin {
         // todo: if we found path for pair <a,b> but not for <b,a>
         //  should we associate both pairs with this dp ?
         private Map<String, String> buildDpsFromPairs(List<String> ngramNounPairs, Text gram) {
+            if (CollectionUtils.isEmpty(ngramNounPairs)) return new HashMap<>();
             NGramData nGramData = new NGramData();
             nGramData.setGraph(buildNgramGraph(gram));
             nGramData.setWordToWordDesc(buildWordToDescMap(gram));
@@ -160,6 +181,14 @@ public class FilterAllDpsByDpmin {
             // chair	furniture/pobj/acomp/0 like/VB/xcomp/1 tahat/NN/prep/2
             for (int i = 1; i < gramSplit.length; i++) {
                 String[] wordSplit = gramSplit[i].split("/");
+                if (!StringUtils.isNumeric(wordSplit[3])) {
+                    System.out.print(wordSplit[3] + " isnt a number!!!");
+                    for (String s : gramSplit) {
+                        System.out.print(s);
+                        System.out.print(" ");
+                    }
+                    System.out.println();
+                }
                 int pointer = Integer.parseInt(wordSplit[3]);
                 graph.put(wordSplit[0], gramSplit[pointer]);
             }
