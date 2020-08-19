@@ -179,9 +179,21 @@ public class FilterAllDpsByDpmin {
             for (int i = 1; i < gramSplit.length; i++) {
                 String[] wordSplit = gramSplit[i].split("/");
                 int pointer = Integer.parseInt(wordSplit[3]);
-                graph.put(wordSplit[0], gramSplit[pointer]);
+                if (pointer != 0) {
+                    graph.put(wordSplit[0], gramSplit[pointer]);
+                } else {
+                    graph.put(wordSplit[0], getWordDescByWord(gramSplit[pointer], gramSplit));
+                }
             }
             return graph;
+        }
+
+
+        private String getWordDescByWord(String s, String[] gramSplit) {
+            for (int i = 1; i < gramSplit.length; i++) {
+                if (extractWord(gramSplit[i]).equals(s)) return gramSplit[i];
+            }
+            return null;
         }
 
         /**
@@ -205,7 +217,11 @@ public class FilterAllDpsByDpmin {
                 dp.append("-");
                 currentVal = nGramData.getGraph().get(currentKey);
                 // if found self arc its a dead end
-                if (currentKey.equals(currentVal)) {
+                if (currentKey.equals(extractWord(currentVal))) {
+                    return null;
+                }
+                // found a loop
+                else if (extractWord(currentVal).equals(splitPair[0])) {
                     return null;
                 } else if (extractWord(currentVal).equals(target)) {
                     dp.append(currentVal.replace(target, "Y"));
