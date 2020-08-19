@@ -89,13 +89,13 @@ public class FilterAllDpsByDpmin {
             String[] splittedGram = gram.toString().split("\\s+");
             if (StringUtils.isEmpty(splittedGram[0])) return false;
             for (int i = 1; i < splittedGram.length; i++) {
-                if (validateWordDesc(splittedGram[i])) return false;
+                if (!validWordDesc(splittedGram[i])) return false;
             }
             return true;
         }
 
         // filtering cases like this: //NN/attr/1
-        private boolean validateWordDesc(String wordDesc) {
+        private boolean validWordDesc(String wordDesc) {
             return wordDesc.split("/").length == 4;
         }
 
@@ -181,14 +181,6 @@ public class FilterAllDpsByDpmin {
             // chair	furniture/pobj/acomp/0 like/VB/xcomp/1 tahat/NN/prep/2
             for (int i = 1; i < gramSplit.length; i++) {
                 String[] wordSplit = gramSplit[i].split("/");
-                if (!StringUtils.isNumeric(wordSplit[3])) {
-                    System.out.print(wordSplit[3] + " isnt a number!!!");
-                    for (String s : gramSplit) {
-                        System.out.print(s);
-                        System.out.print(" ");
-                    }
-                    System.out.println();
-                }
                 int pointer = Integer.parseInt(wordSplit[3]);
                 graph.put(wordSplit[0], gramSplit[pointer]);
             }
