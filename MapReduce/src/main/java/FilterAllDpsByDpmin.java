@@ -29,8 +29,8 @@ public class FilterAllDpsByDpmin {
     public static String COUNTER_TAG = "!";
     public static String VALUES_TAG = "*";
 
-    public static Text removeTag(Text taggedKey) {
-        return new Text(taggedKey.toString().replace(COUNTER_TAG, "").replace(VALUES_TAG, "").trim());
+    public static String removeTag(Text taggedKey) {
+        return taggedKey.toString().replace(COUNTER_TAG, "").replace(VALUES_TAG, "").trim();
     }
 
     public static class PartitionerClass extends Partitioner<Text, Text> {
@@ -50,7 +50,6 @@ public class FilterAllDpsByDpmin {
 
         public void setup(Context context) {
             numOfReducers = context.getNumReduceTasks();
-            System.out.println("num of reducers: " + numOfReducers);
             counters = new long[numOfReducers];
         }
 
@@ -68,7 +67,7 @@ public class FilterAllDpsByDpmin {
             Text taggedKey;
             for (String pair : pairToDp.keySet()) {
                 taggedKey = new Text(VALUES_TAG + pairToDp.get(pair));
-                context.write(taggedKey, new Text(pair + ":" + stemmedGram));
+                context.write(taggedKey, new Text(pair + ":" + stemmedGram.toString()));
                 counters[PartitionerClass.partitionForValue(taggedKey, numOfReducers)]++;
             }
         }
@@ -137,8 +136,6 @@ public class FilterAllDpsByDpmin {
             return new Text(validBiarcPart.toString().trim());
         }
 
-        // todo: if we found path for pair <a,b> but not for <b,a>
-        //  should we associate both pairs with this dp ?
         private Map<String, String> buildDpsFromPairs(List<String> ngramNounPairs, Text gram) {
             if (CollectionUtils.isEmpty(ngramNounPairs)) return new HashMap<>();
             NGramData nGramData = new NGramData();
@@ -195,7 +192,6 @@ public class FilterAllDpsByDpmin {
          * @param pair
          * @return dp if found or null otherwise
          */
-        // todo: what should we exclude from the dp?
         private String buildDp(NGramData nGramData, String pair) {
             String[] splitPair = pair.split("\\s+");
             if (splitPair[0].equals(nGramData.getGraph().get(splitPair[0]))) return null;
@@ -276,7 +272,6 @@ public class FilterAllDpsByDpmin {
 
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            System.out.println("reducer class id: " + System.identityHashCode(this));
             if (key.toString().contains(COUNTER_TAG)) {
                 long offsetsSum = 0;
                 for (Text value : values) {
