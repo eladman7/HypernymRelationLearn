@@ -82,7 +82,7 @@ public class CountDpsPerPair {
 
         private void writeVecSizeToAllReducers(Context context, String[] gram) throws IOException, InterruptedException {
             for (int i = 0; i < context.getNumReduceTasks(); i++) {
-                context.write(new Text(VEC_SIZE_TAG + gram[0]), new Text(gram[1]));
+                context.write(new Text(VEC_SIZE_TAG + i), new Text(gram[1]));
             }
         }
     }
