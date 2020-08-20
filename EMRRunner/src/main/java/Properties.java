@@ -3,18 +3,19 @@ public class Properties {
     public static String keyPair = "dsp_key";
     public static String DPMIN = "5";
     public static Integer NUM_OF_INSTANCES = 9;
+    public static String S3_PREFIX = "s3n://";
 
     // buckets
-    public static String OUT_BUCKET = "s3n://ass3-output-bucket";
-    public static String IN_BUCKET = "s3n://ass3-input-bucket";
-    public static String LogsPath = "s3n://ass3-log-bucket";
+    public static String OUT_BUCKET = S3_PREFIX + "ass3-output-bucket";
+    public static String IN_BUCKET = S3_PREFIX + "ass3-input-bucket";
+    public static String LogsPath = S3_PREFIX + "ass3-log-bucket";
 
     // input jars
     public static String firstJarPath = IN_BUCKET + "/MapReduce.jar";
 
     // step1 - FilterAllDpsByDpmin
     // sample file name   /biarcs.05-of-99
-    public static String Step1Arg1 = IN_BUCKET + "/biarcs";
+    public static String Step1Arg1 = IN_BUCKET + "/biarcs/biarcs.05-of-99";
     public static String Step1Arg2 = OUT_BUCKET + "/FilterAllDpsByDpmin_out";
     public static String Step1Arg3 = DPMIN;
 

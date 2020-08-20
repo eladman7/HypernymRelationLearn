@@ -27,7 +27,13 @@ public class JoinPairLabel {
     public static String SECOND_TAG = "#2";
 
     public static Text removeTag(Text taggedKey) {
-        return new Text(taggedKey.toString().replace(FIRST_TAG, "").replace(SECOND_TAG, ""));
+        String res = taggedKey.toString();
+        if (res.endsWith(FIRST_TAG)) {
+            res = res.replaceFirst(Pattern.quote(FIRST_TAG), ""); // remove FIRST_TAG
+        } else if (res.endsWith(SECOND_TAG)) {
+            res = res.replaceFirst(Pattern.quote(SECOND_TAG), ""); // remove SECOND_TAG
+        }
+        return new Text(res.trim());
     }
 
     public static class MapperClass extends Mapper<LongWritable, Text, Text, Text> {

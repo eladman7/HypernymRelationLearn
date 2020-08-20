@@ -7,15 +7,12 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -26,29 +23,48 @@ import java.util.regex.Pattern;
  * arguments: 0- JoinPairLabel_out path, 1- vec_size path, 2-output path
  */
 public class CountDpsPerPair {
-    public static String VEC_SIZE_NAME = "vec_size";
     public static String FIRST_TAG = "*";
+    public static String VEC_SIZE_TAG = "!";
 
     public static Text removeTag(Text taggedKey) {
-        return new Text(taggedKey.toString().replace(FIRST_TAG, "").trim());
+        String res = taggedKey.toString();
+        if (res.endsWith(FIRST_TAG)) {
+            res = res.substring(0, res.length() - 1); // remove First_TAG
+        } else if (res.startsWith(VEC_SIZE_TAG)) {
+            res = res.replaceFirst(Pattern.quote(VEC_SIZE_TAG), ""); // remove VEC_SIZE_TAG
+        }
+        return new Text(res.trim());
     }
 
+    /*
+    get this
+        <dog, animal>, 0<x like y>:ngram1
+        <dog, animal>, 2<x as y>:ngram5
+        <dog, animal>, 0<x like y>:ngram2
+        <dog, animal>, true
+    map into this:
+        <<dog, animal> 0:<x like y> ,[ ngram1]>
+        <<dog, animal> 2:<x as y> ,[ngram5]>
+        <<dog, animal> 0:<x like y>, [ngram2]>
+        <<dog, animal>, true>
+    * */
     public static class MapperClass extends Mapper<LongWritable, Text, Text, Text> {
-        /*
-        get this
-            <dog, animal>, 0<x like y>:ngram1
-            <dog, animal>, 2<x as y>:ngram5
-            <dog, animal>, 0<x like y>:ngram2
-            <dog, animal>, true
-        map into this:
-            <<dog, animal> 0:<x like y> ,[ ngram1]>
-            <<dog, animal> 2:<x as y> ,[ngram5]>
-            <<dog, animal> 0:<x like y>, [ngram2]>
-            <<dog, animal>, true>
-        * */
+        private boolean publishedVecSize;
+
+        public void setup(Context context) {
+            publishedVecSize = false;
+        }
+
         @Override
         public void map(LongWritable lineId, Text gram, Context context) throws IOException, InterruptedException {
             String[] splittedGram = gram.toString().split("\\s+");
+            if (splittedGram.length == 2) {
+                if (!publishedVecSize) {
+                    writeVecSizeToAllReducers(context, splittedGram);
+                    publishedVecSize = true;
+                }
+                return;
+            }
             // dog	animal	true
             String newVal, newKey;
             if (splittedGram.length == 3) {
@@ -63,6 +79,12 @@ public class CountDpsPerPair {
             }
             context.write(new Text(newKey), new Text(newVal));
         }
+
+        private void writeVecSizeToAllReducers(Context context, String[] gram) throws IOException, InterruptedException {
+            for (int i = 0; i < context.getNumReduceTasks(); i++) {
+                context.write(new Text(VEC_SIZE_TAG + gram[0]), new Text(gram[1]));
+            }
+        }
     }
 
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
@@ -75,7 +97,6 @@ public class CountDpsPerPair {
             currentPair = "";
             lastIndexOfPair = -1;
             counterOfIndexInPair = 0;
-            vec_size = Integer.parseInt(context.getConfiguration().get(VEC_SIZE_NAME));
         }
 
         /*
@@ -90,6 +111,10 @@ public class CountDpsPerPair {
         * */
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+            if (key.toString().startsWith(VEC_SIZE_TAG)) {
+                vec_size = Long.parseLong(values.iterator().next().toString());
+                return;
+            }
             String key_str = removeTag(key).toString();
             String pair = extractPairFromKey(key_str);
             if (!pair.equals(currentPair)) {
@@ -156,8 +181,6 @@ public class CountDpsPerPair {
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
         // setting max vector size from MR2 to all mappers׳ context in this stage
-        List<String> strings = Files.readAllLines(Paths.get(args[1]));
-        conf.set(VEC_SIZE_NAME, strings.get(0).split("\\s+")[1]);
         Job job = new Job(conf, "Count dps per pair");
         job.setJarByClass(CountDpsPerPair.class);
         job.setMapperClass(CountDpsPerPair.MapperClass.class);
@@ -172,11 +195,14 @@ public class CountDpsPerPair {
         job.setOutputFormatClass(TextOutputFormat.class);
 
         Path out3Input = new Path(args[0]);
+        Path vec_sizes_input = new Path(args[1]);
 
         Path outputPath = new Path(args[2]);
-
-        // SequenceFileInputFormat, TextInputFormat
-        FileInputFormat.addInputPath(job, out3Input);
+        // multiple inputs
+        MultipleInputs.addInputPath(job, out3Input, TextInputFormat.class, MapperClass.class);
+        MultipleInputs.addInputPath(job, vec_sizes_input, TextInputFormat.class, MapperClass.class);
+        // single input
+//        FileInputFormat.addInputPath(job, out3Input);
         FileOutputFormat.setOutputPath(job, outputPath);
 
         System.exit(job.waitForCompletion(true) ? 0 : 1);

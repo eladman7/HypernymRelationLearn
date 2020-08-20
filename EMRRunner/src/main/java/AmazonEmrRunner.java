@@ -49,8 +49,8 @@ public class AmazonEmrRunner {
         String[] args6 = {Properties.Step6Arg1, Properties.Step6Arg2};
         stepConfigs.add(buildStep(args6, "MergeVectors", "Merge labeled examples"));
 
-        Map<String,String> jvmProperties = new HashMap<>();
-        jvmProperties.put("mapred.child.java.opts","-Xmx4096m");
+        Map<String, String> jvmProperties = new HashMap<>();
+        jvmProperties.put("mapred.child.java.opts", "-Xmx4096m");
 
         Configuration myConfig = new Configuration()
                 .withClassification("mapred-site")
@@ -75,8 +75,8 @@ public class AmazonEmrRunner {
     private static JobFlowInstancesConfig defineInstances() {
         return new JobFlowInstancesConfig()
                 .withInstanceCount(Properties.NUM_OF_INSTANCES)
-                .withMasterInstanceType(InstanceType.M4Xlarge.toString())
-                .withSlaveInstanceType(InstanceType.M4Xlarge.toString())
+                .withMasterInstanceType(InstanceType.M4Large.toString())
+                .withSlaveInstanceType(InstanceType.M4Large.toString())
                 .withHadoopVersion("2.7.3").withEc2KeyName(Properties.keyPair)
                 .withKeepJobFlowAliveWhenNoSteps(false)
                 .withPlacement(new PlacementType("us-east-1a"));

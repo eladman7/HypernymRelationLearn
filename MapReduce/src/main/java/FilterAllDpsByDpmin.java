@@ -31,7 +31,15 @@ public class FilterAllDpsByDpmin {
     public static String VALUES_TAG = "*";
 
     public static String removeTag(Text taggedKey) {
-        return taggedKey.toString().replace(COUNTER_TAG, "").replace(VALUES_TAG, "").trim();
+
+        String res = taggedKey.toString();
+        if (res.startsWith(COUNTER_TAG)) {
+            res = res.replaceFirst(Pattern.quote(COUNTER_TAG), ""); // remove COUNTER_TAG
+        }
+        else if (res.startsWith(VALUES_TAG)) {
+            res = res.replaceFirst(Pattern.quote(VALUES_TAG), ""); // remove VEC_SIZE_TAG
+        }
+        return res.trim();
     }
 
     public static class PartitionerClass extends Partitioner<Text, Text> {

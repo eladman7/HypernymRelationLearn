@@ -28,7 +28,11 @@ public class CreateLabeledVector {
 //    public static String VEC_SIZE_NAME = "vec_size";
 
     public static Text removeTag(Text taggedKey) {
-        return new Text(taggedKey.toString().replace(FIRST_TAG, ""));
+        String res = taggedKey.toString();
+        if (res.endsWith(FIRST_TAG)) {
+            res = res.substring(0, res.length() - 1); // remove FIRST_TAG
+        }
+        return new Text(res.trim());
     }
 
     public static boolean isLabelData(String data) {
@@ -97,6 +101,7 @@ public class CreateLabeledVector {
         public void cleanup(Context context) throws IOException, InterruptedException {
             writeVector(context);
         }
+
         private String extractPairFromKey(String key) {
             String[] split = key.split("\\s+");
             return split[0] + "\t" + split[1].split(Pattern.quote(":"))[0];
