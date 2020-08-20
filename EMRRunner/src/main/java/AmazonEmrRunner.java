@@ -6,7 +6,9 @@ import com.amazonaws.services.elasticmapreduce.model.*;
 import com.amazonaws.services.elasticmapreduce.util.StepFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AmazonEmrRunner {
 
@@ -24,7 +26,7 @@ public class AmazonEmrRunner {
         stepConfigs.add(enableDebugging);
 
         // STEP1
-        String[] args1 = {Properties.Step1Arg1, Properties.Step1Arg2, Properties.Step1Arg3};
+        String[] args1 = {Properties.Step1Arg1, Properties.Step1Arg2, Properties.Step1Arg3/*, Properties.Step1Arg4*/};
         stepConfigs.add(buildStep(args1, "FilterAllDpsByDpmin", "Filter DPs above DPMin"));
 
         // STEP2
@@ -47,12 +49,20 @@ public class AmazonEmrRunner {
         String[] args6 = {Properties.Step6Arg1, Properties.Step6Arg2};
         stepConfigs.add(buildStep(args6, "MergeVectors", "Merge labeled examples"));
 
+        Map<String,String> jvmProperties = new HashMap<>();
+        jvmProperties.put("mapred.child.java.opts","-Xmx4096m");
+
+        Configuration myConfig = new Configuration()
+                .withClassification("mapred-site")
+                .withProperties(jvmProperties);
+
         // run
         RunJobFlowRequest runFlowRequest = new RunJobFlowRequest()      // collection of steps
                 .withName("Full Run Big Data")                                   //cluster name
                 .withInstances(defineInstances())
                 .withSteps(stepConfigs)
-                .withLogUri(Properties.LogsPath);
+                .withLogUri(Properties.LogsPath)
+                .withConfigurations(myConfig);
 
         runFlowRequest.setServiceRole("EMR_DefaultRole");
         runFlowRequest.setJobFlowRole("EMR_EC2_DefaultRole");
@@ -64,9 +74,9 @@ public class AmazonEmrRunner {
 
     private static JobFlowInstancesConfig defineInstances() {
         return new JobFlowInstancesConfig()
-                .withInstanceCount(9)
-                .withMasterInstanceType(InstanceType.M4Large.toString())
-                .withSlaveInstanceType(InstanceType.M4Large.toString())
+                .withInstanceCount(Properties.NUM_OF_INSTANCES)
+                .withMasterInstanceType(InstanceType.M4Xlarge.toString())
+                .withSlaveInstanceType(InstanceType.M4Xlarge.toString())
                 .withHadoopVersion("2.7.3").withEc2KeyName(Properties.keyPair)
                 .withKeepJobFlowAliveWhenNoSteps(false)
                 .withPlacement(new PlacementType("us-east-1a"));

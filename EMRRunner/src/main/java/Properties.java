@@ -2,7 +2,7 @@ public class Properties {
     // consts
     public static String keyPair = "dsp_key";
     public static String DPMIN = "5";
-    public static String BIARC_PATH = "s3n://biarcs/biarcs.05-of-99";
+    public static Integer NUM_OF_INSTANCES = 9;
 
     // buckets
     public static String OUT_BUCKET = "s3n://ass3-output-bucket";
@@ -13,7 +13,8 @@ public class Properties {
     public static String firstJarPath = IN_BUCKET + "/MapReduce.jar";
 
     // step1 - FilterAllDpsByDpmin
-    public static String Step1Arg1 = BIARC_PATH;
+    // sample file name   /biarcs.05-of-99
+    public static String Step1Arg1 = IN_BUCKET + "/biarcs";
     public static String Step1Arg2 = OUT_BUCKET + "/FilterAllDpsByDpmin_out";
     public static String Step1Arg3 = DPMIN;
 
@@ -22,7 +23,7 @@ public class Properties {
     public static String Step2Arg2 = OUT_BUCKET + "/FindMaxVectorSize_out";
 
     // step3 - JoinPairLabel
-    public static String Step3Arg1 = OUT_BUCKET + "//FilterAllDpsByDpmin_out/pairsToDps";
+    public static String Step3Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/pairsToDps";
     public static String Step3Arg2 = IN_BUCKET + "/hypernym_pairs_annotated.txt";
     public static String Step3Arg3 = OUT_BUCKET + "/JoinPairLabel_out";
 

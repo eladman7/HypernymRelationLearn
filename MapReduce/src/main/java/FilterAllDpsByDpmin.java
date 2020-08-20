@@ -16,6 +16,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * #1 MR app
@@ -96,7 +97,7 @@ public class FilterAllDpsByDpmin {
 
         // filtering cases like this: //NN/attr/1
         private boolean validWordDesc(String wordDesc) {
-            return wordDesc.split("/").length == 4;
+            return wordDesc.split(Pattern.quote("/")).length == 4;
         }
 
         private Text stemNouns(Text gram) {
@@ -107,7 +108,7 @@ public class FilterAllDpsByDpmin {
             boolean stemRoot = false;
             for (int i = 1; i < gramSplit.length; i++) {
                 if (LingusticUtils.isNoun(gramSplit[i])) {
-                    word = gramSplit[i].split("/")[0];
+                    word = gramSplit[i].split(Pattern.quote("/"))[0];
                     if (word.equals(gramSplit[0])) stemRoot = true;
                     stemmedWord = LingusticUtils.stem(word);
                     gramSplit[i] = gramSplit[i].replace(word, stemmedWord);
@@ -128,7 +129,7 @@ public class FilterAllDpsByDpmin {
             StringBuilder validBiarcPart = new StringBuilder(splitBiarc[0]);
             validBiarcPart.append("\t");
             for (int i = 1; i < splitBiarc.length; i++) {
-                if (splitBiarc[i].split("/").length > 1) {
+                if (splitBiarc[i].split(Pattern.quote("/")).length > 1) {
                     validBiarcPart.append(splitBiarc[i]);
                     validBiarcPart.append(" ");
                 }
@@ -177,7 +178,7 @@ public class FilterAllDpsByDpmin {
             String[] gramSplit = gram.toString().split("\\s+");
             // chair	furniture/pobj/acomp/0 like/VB/xcomp/1 tahat/NN/prep/2
             for (int i = 1; i < gramSplit.length; i++) {
-                String[] wordSplit = gramSplit[i].split("/");
+                String[] wordSplit = gramSplit[i].split(Pattern.quote("/"));
                 int pointer = Integer.parseInt(wordSplit[3]);
                 if (pointer != 0) {
                     graph.put(wordSplit[0], gramSplit[pointer]);
@@ -211,7 +212,8 @@ public class FilterAllDpsByDpmin {
             StringBuilder dp = new StringBuilder();
             String currentKey = splitPair[0];
             String target = splitPair[1];
-            dp.append(nGramData.getWordToWordDesc().get(currentKey).replace(currentKey, "X"));
+            dp.append(nGramData.getWordToWordDesc().get(currentKey)
+                    .replaceFirst(Pattern.quote(currentKey), "X"));
             String currentVal;
             do {
                 dp.append("-");
@@ -224,7 +226,7 @@ public class FilterAllDpsByDpmin {
                 else if (extractWord(currentVal).equals(splitPair[0])) {
                     return null;
                 } else if (extractWord(currentVal).equals(target)) {
-                    dp.append(currentVal.replace(target, "Y"));
+                    dp.append(currentVal.replaceFirst(Pattern.quote(target), "Y"));
                 } else dp.append(currentVal);
                 currentKey = extractWord(currentVal);
             } while (!(extractWord(currentVal).equals(target)));
@@ -235,9 +237,9 @@ public class FilterAllDpsByDpmin {
         // output: X/advmod-as/prep-Y/acomp
         private String cleanDP(String rawDp) {
             StringBuilder cleanDp = new StringBuilder();
-            String[] nodes = rawDp.split("-");
+            String[] nodes = rawDp.split(Pattern.quote("-"));
             for (String node : nodes) {
-                String[] splittedNode = node.split("/");
+                String[] splittedNode = node.split(Pattern.quote("/"));
                 cleanDp.append(splittedNode[0]).append("/").append(splittedNode[2]).append("-");
             }
             // remove last '-'
@@ -316,7 +318,7 @@ public class FilterAllDpsByDpmin {
             // write temp list
             String dpId = String.valueOf(initialOffset + uniqueDPId);
             for (int i = 0; i < currentDPValuesCounter; i++) {
-                String[] splitPairWithNgram = tempList.get(i).split(":");
+                String[] splitPairWithNgram = tempList.get(i).split(Pattern.quote(":"));
                 mo.write(new Text(splitPairWithNgram[0]), new Text(dpId + ":" + newKey + ":"
                                 + splitPairWithNgram[1]),
                         "pairsToDps/pairsToDp");
@@ -326,7 +328,7 @@ public class FilterAllDpsByDpmin {
             }
             // write the rest of the values
             for (Text pairWithNgram : values) {
-                String[] splitPairWithNgram = pairWithNgram.toString().split(":");
+                String[] splitPairWithNgram = pairWithNgram.toString().split(Pattern.quote(":"));
                 mo.write(new Text(splitPairWithNgram[0]),
                         new Text(dpId + ":" + newKey + ":" + splitPairWithNgram[1]),
                         "pairsToDps/pairsToDp");

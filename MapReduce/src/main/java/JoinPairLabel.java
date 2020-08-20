@@ -13,6 +13,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.regex.Pattern;
 
 /**
  * #3 MR app
@@ -40,8 +41,8 @@ public class JoinPairLabel {
             }
             // first MR out e.g <dog	animal	0:X/NN/prep/2-like/VB/xcomp/1-Y/NN/acomp/0:NGRAM1>
             else {
-                String value = gram.toString().replaceFirst(splittedGram[0], "")
-                        .replaceFirst(splittedGram[1], "").trim();
+                String value = gram.toString().replaceFirst(Pattern.quote(splittedGram[0]), "")
+                        .replaceFirst(Pattern.quote(splittedGram[1]), "").trim();
                 context.write(new Text(splittedGram[0] + "\t" + splittedGram[1] + SECOND_TAG), new Text(value));
             }
         }

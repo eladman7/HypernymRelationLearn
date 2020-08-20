@@ -13,6 +13,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
+import java.util.regex.Pattern;
 
 /**
  * #5 MR app
@@ -98,7 +99,7 @@ public class CreateLabeledVector {
         }
         private String extractPairFromKey(String key) {
             String[] split = key.split("\\s+");
-            return split[0] + "\t" + split[1].split(":")[0];
+            return split[0] + "\t" + split[1].split(Pattern.quote(":"))[0];
         }
     }
 

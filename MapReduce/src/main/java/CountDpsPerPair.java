@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * #4 MR app
@@ -56,7 +57,7 @@ public class CountDpsPerPair {
             }
             // dog	animal	0:X/NN/prep/2-like/VB/xcomp/1-Y/NN/acomp/0:animal	animal/NN/acomp/0 like/VB/xcomp/1 dog/NN/prep/2
             else {
-                String[] dpSplit = splittedGram[2].split(":");
+                String[] dpSplit = splittedGram[2].split(Pattern.quote(":"));
                 newKey = splittedGram[0] + "\t" + splittedGram[1] + "\t" + dpSplit[0] + ":" + dpSplit[1];
                 newVal = dpSplit[2];
             }
@@ -141,7 +142,7 @@ public class CountDpsPerPair {
 
         private long extractDpIndexFromKey(String key) {
             String[] split = key.split("\\s+");
-            return Long.parseLong(split[2].split(":")[0]);
+            return Long.parseLong(split[2].split(Pattern.quote(":"))[0]);
         }
     }
 
