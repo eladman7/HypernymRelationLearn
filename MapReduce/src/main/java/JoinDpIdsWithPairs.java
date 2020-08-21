@@ -12,7 +12,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.regex.Pattern;
 
 /**
@@ -22,7 +21,7 @@ import java.util.regex.Pattern;
  * Reduce - write as is while ignores unlabeled pairs
  * arguments: 0- FilterAllDpsByDpmin_out path, 1- labeled pairs path, 2-output path
  */
-public class JoinPairLabel {
+public class JoinDpIdsWithPairs {
     public static String FIRST_TAG = "#1";
     public static String SECOND_TAG = "#2";
 
@@ -40,44 +39,54 @@ public class JoinPairLabel {
         @Override
         public void map(LongWritable lineId, Text gram, Context context) throws IOException, InterruptedException {
             String[] splittedGram = gram.toString().split("\\s+");
-            // labeled pair table e.g <dog animal true>
-            if (splittedGram.length == 3) {
-                context.write(new Text(LingusticUtils.stem(splittedGram[0]) + "\t" +
-                        LingusticUtils.stem(splittedGram[1]) + FIRST_TAG), new Text(splittedGram[2]));
+            // X/advcl-Y/nsubj	0
+            if (splittedGram.length == 2) {
+                context.write(new Text(splittedGram[0] + FIRST_TAG), new Text(splittedGram[1]));
             }
-            // first MR out e.g <dog	animal	0:dp1:NGRAM1>
+            // X/advmod-Y/acomp	insulin	resist:are	are/VBP/advcl/0 insulin/NN/advmod/3 resist/NN/acomp/1
             else {
-                String value = gram.toString().replaceFirst(Pattern.quote(splittedGram[0]), "")
-                        .replaceFirst(Pattern.quote(splittedGram[1]), "").trim();
-                context.write(new Text(splittedGram[0] + "\t" + splittedGram[1] + SECOND_TAG), new Text(value));
+                context.write(new Text(splittedGram[0] + SECOND_TAG),
+                        new Text(gram.toString().replace(splittedGram[0], "").trim()));
             }
         }
     }
 
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
-        private boolean gotLabeled;
         private String currentKey;
+        private int currentKeyIndex;
+        private boolean gotIndex;
 
         public void setup(Context context) {
+            gotIndex = false;
             currentKey = "";
+            currentKeyIndex = -1;
         }
 
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             if (!removeTag(key).toString().equals(currentKey)) {
                 currentKey = removeTag(key).toString();
-                gotLabeled = false;
             }
-            if (key.toString().contains(FIRST_TAG)) {
-                Iterator<Text> iterator = values.iterator();
-                Text next = iterator.next();
-                gotLabeled = true;
-                context.write(removeTag(key), next);
-            } else if (key.toString().contains(SECOND_TAG)) {
-                // ignoring unlabeled pairs
-                if (!gotLabeled) return;
+            if (key.toString().endsWith(FIRST_TAG)) {
+                String firstVal = values.iterator().next().toString();
+                currentKeyIndex = Integer.parseInt(firstVal);
+                gotIndex = true;
+            } else if (key.toString().endsWith(SECOND_TAG)) {
+                // write somthing like that:
+                // ceil	post	0:X/ccomp-Y/nsubj:are	ceil/NN/ccomp/2 post/NNS/nsubj/3 are/VBP/ROOT/0
+                // from somthing like this:
+                // X/advmod-Y/acomp	insulin	resist:are	are/VBP/advcl/0 insulin/NN/advmod/3 resist/NN/acomp/1
+                // assuming 1 value
+                if (!gotIndex) throw new IOException("Error: did not got index. dp: " + key.toString());
+                String[] valSplit, secondSplit;
+                String pair, ngram, curValue;
                 for (Text value : values) {
-                    context.write(removeTag(key), value);
+                    valSplit = value.toString().split("\\s+");
+                    secondSplit = valSplit[1].split(Pattern.quote(":"));
+                    pair = valSplit[0] + "\t" + secondSplit[0];
+                    ngram = value.toString().split(Pattern.quote(":"))[1];
+                    curValue = currentKeyIndex + ":" + removeTag(key).toString() + ":" + ngram;
+                    context.write(new Text(pair), new Text(curValue));
                 }
             }
         }
@@ -92,27 +101,26 @@ public class JoinPairLabel {
 
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
-        Job job = new Job(conf, "Join pair label");
-        job.setJarByClass(JoinPairLabel.class);
-        job.setMapperClass(JoinPairLabel.MapperClass.class);
-        job.setPartitionerClass(JoinPairLabel.PartitionerClass.class);
-        job.setReducerClass(JoinPairLabel.ReducerClass.class);
+        Job job = new Job(conf, "Join dp ids and pairs");
+        job.setJarByClass(JoinDpIdsWithPairs.class);
+        job.setMapperClass(JoinDpIdsWithPairs.MapperClass.class);
+        job.setPartitionerClass(JoinDpIdsWithPairs.PartitionerClass.class);
+        job.setReducerClass(JoinDpIdsWithPairs.ReducerClass.class);
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
-//        job.setCombinerClass(JoinPairLabel.ReducerClass.class);
+//        job.setCombinerClass(JoinDpIdsWithPairs.ReducerClass.class);
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
-        Path out2Input = new Path(args[0]);
-        Path labeledPairsInput = new Path(args[1]);
-
+        Path dpsToPair = new Path(args[0]);
+        Path dpToIds = new Path(args[1]);
         Path outputPath = new Path(args[2]);
 
         // SequenceFileInputFormat, TextInputFormat
-        MultipleInputs.addInputPath(job, out2Input, TextInputFormat.class, MapperClass.class);
-        MultipleInputs.addInputPath(job, labeledPairsInput, TextInputFormat.class, MapperClass.class);
+        MultipleInputs.addInputPath(job, dpsToPair, TextInputFormat.class, MapperClass.class);
+        MultipleInputs.addInputPath(job, dpToIds, TextInputFormat.class, MapperClass.class);
         FileOutputFormat.setOutputPath(job, outputPath);
 
         System.exit(job.waitForCompletion(true) ? 0 : 1);

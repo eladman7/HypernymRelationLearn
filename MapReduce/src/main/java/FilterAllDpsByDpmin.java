@@ -27,16 +27,11 @@ import java.util.regex.Pattern;
  */
 public class FilterAllDpsByDpmin {
     public static String DPMIN_NAME = "DPMIN";
-    public static String COUNTER_TAG = "!";
     public static String VALUES_TAG = "*";
 
     public static String removeTag(Text taggedKey) {
-
         String res = taggedKey.toString();
-        if (res.startsWith(COUNTER_TAG)) {
-            res = res.replaceFirst(Pattern.quote(COUNTER_TAG), ""); // remove COUNTER_TAG
-        }
-        else if (res.startsWith(VALUES_TAG)) {
+        if (res.startsWith(VALUES_TAG)) {
             res = res.replaceFirst(Pattern.quote(VALUES_TAG), ""); // remove VEC_SIZE_TAG
         }
         return res.trim();
@@ -48,19 +43,12 @@ public class FilterAllDpsByDpmin {
             return partitionForValue(key, numPartitions);
         }
 
-        public static int partitionForValue(Text value, int numPartitions) {
-            return (removeTag(value).hashCode() & Integer.MAX_VALUE) % numPartitions;
+        public static int partitionForValue(Text key, int numPartitions) {
+            return (removeTag(key).hashCode() & Integer.MAX_VALUE) % numPartitions;
         }
     }
 
     public static class MapperClass extends Mapper<LongWritable, Text, Text, Text> {
-        private long[] counters;
-        int numOfReducers;
-
-        public void setup(Context context) {
-            numOfReducers = context.getNumReduceTasks();
-            counters = new long[numOfReducers];
-        }
 
         @Override
         public void map(LongWritable lineId, Text gram, Context context) throws IOException, InterruptedException {
@@ -77,17 +65,6 @@ public class FilterAllDpsByDpmin {
             for (String pair : pairToDp.keySet()) {
                 taggedKey = new Text(VALUES_TAG + pairToDp.get(pair));
                 context.write(taggedKey, new Text(pair + ":" + stemmedGram.toString()));
-                counters[PartitionerClass.partitionForValue(taggedKey, numOfReducers)]++;
-            }
-        }
-
-        @Override
-        public void cleanup(Context context) throws IOException, InterruptedException {
-            for (int c = 0; c < counters.length - 1; c++) {
-                if (counters[c] > 0) {
-                    context.write(new Text(COUNTER_TAG + (c + 1)), new Text(String.valueOf(counters[c])));
-                }
-                counters[c + 1] += counters[c];
             }
         }
 
@@ -280,32 +257,20 @@ public class FilterAllDpsByDpmin {
     }
 
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
+        private MultipleOutputs<Text, Text> mo;
         private long currentDPValuesCounter;
         private String currentKey;
-        private MultipleOutputs<Text, Text> mo;
         private int DPMIN;
-        private long initialOffset;
-        private long uniqueDPId;
 
         public void setup(Context context) {
-            mo = new MultipleOutputs<>(context);
             DPMIN = Integer.parseInt(context.getConfiguration().get(DPMIN_NAME));
             currentDPValuesCounter = 0;
-            initialOffset = 0;
             currentKey = "";
-            uniqueDPId = -1;
+            mo = new MultipleOutputs<>(context);
         }
 
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            if (key.toString().contains(COUNTER_TAG)) {
-                long offsetsSum = 0;
-                for (Text value : values) {
-                    offsetsSum += Long.parseLong(value.toString());
-                }
-                initialOffset = offsetsSum;
-                return;
-            }
             // count values till reaching DPMin
             List<String> tempList = new ArrayList<>(DPMIN);
             for (Text pairWithNgram : values) {
@@ -320,36 +285,19 @@ public class FilterAllDpsByDpmin {
             // key changed
             String newKey = removeTag(key);
             if (!newKey.equals(currentKey)) {
-                uniqueDPId++;
-            }
-            // example from doc: Write(<dog, animal> ,[ 0:<x like y>:ngram1]>)
-            // write temp list
-            String dpId = String.valueOf(initialOffset + uniqueDPId);
-            for (int i = 0; i < currentDPValuesCounter; i++) {
-                String[] splitPairWithNgram = tempList.get(i).split(Pattern.quote(":"));
-                mo.write(new Text(splitPairWithNgram[0]), new Text(dpId + ":" + newKey + ":"
-                                + splitPairWithNgram[1]),
-                        "pairsToDps/pairsToDp");
-            }
-            if (!newKey.equals(currentKey)) {
                 currentDPValuesCounter = 0;
+                mo.write(new Text(newKey), null, "filteredDps/filteredDp");
+            }
+            for (int i = 0; i < currentDPValuesCounter; i++) {
+                mo.write(new Text(newKey), new Text(tempList.get(i)), "dpsToPair/dpToPair");
             }
             // write the rest of the values
-            for (Text pairWithNgram : values) {
-                String[] splitPairWithNgram = pairWithNgram.toString().split(Pattern.quote(":"));
-                mo.write(new Text(splitPairWithNgram[0]),
-                        new Text(dpId + ":" + newKey + ":" + splitPairWithNgram[1]),
-                        "pairsToDps/pairsToDp");
+            for (Text value : values) {
+                mo.write(new Text(newKey), value, "dpsToPair/dpToPair");
             }
         }
 
-        private String removeTag(Text key) {
-            return key.toString().replace(VALUES_TAG, "");
-        }
-
-
         public void cleanup(Context context) throws IOException, InterruptedException {
-            mo.write(new Text("vec_size"), new Text(String.valueOf(uniqueDPId + 1)), "vecSizes/vecSize");
             mo.close();
         }
     }
@@ -376,9 +324,9 @@ public class FilterAllDpsByDpmin {
         FileInputFormat.addInputPath(job, biarcsInput);
 
         // multiple outputs
-        MultipleOutputs.addNamedOutput(job, "pairsToDps", TextOutputFormat.class,
+        MultipleOutputs.addNamedOutput(job, "dpsToPair", TextOutputFormat.class,
                 Text.class, Text.class);
-        MultipleOutputs.addNamedOutput(job, "vecSizes", TextOutputFormat.class,
+        MultipleOutputs.addNamedOutput(job, "filteredDps", TextOutputFormat.class,
                 Text.class, Text.class);
         FileOutputFormat.setOutputPath(job, outputPath);
 
