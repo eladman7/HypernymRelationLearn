@@ -35,7 +35,8 @@ public class FindMaxVectorSize {
         public void reduce(Text key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
             long currentMax = 0;
             for (LongWritable value : values) {
-                if (currentMax < value.get()) currentMax = value.get();
+                if (currentMax < value.get())
+                    currentMax = value.get();
             }
             context.write(key, new LongWritable(currentMax));
         }

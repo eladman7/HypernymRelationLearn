@@ -118,7 +118,7 @@ public class CountDpsPerPair {
                 Write(<<dog,animal>, [(1,0)]>) -> because of the gap between last index 0 and current index 2
                 Write(<<dog,animal>, [(2,1)]>)
                 Write(<<dog, animal>, true>)
-        * */
+        */
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 //            if (key.toString().startsWith(VEC_SIZE_TAG)) {

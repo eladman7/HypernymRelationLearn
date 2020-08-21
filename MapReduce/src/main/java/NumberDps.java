@@ -92,7 +92,7 @@ public class NumberDps {
 
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            if (key.toString().startsWith(Pattern.quote(COUNTER_TAG))) {
+            if (key.toString().startsWith(COUNTER_TAG)) {
                 long offsetsSum = 0;
                 for (Text value : values) {
                     offsetsSum += Long.parseLong(value.toString());
