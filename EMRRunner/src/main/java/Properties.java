@@ -19,25 +19,39 @@ public class Properties {
     public static String Step1Arg2 = OUT_BUCKET + "/FilterAllDpsByDpmin_out";
     public static String Step1Arg3 = DPMIN;
 
-    // step2 - FindMaxVectorSize
-    public static String Step2Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/vecSizes";
-    public static String Step2Arg2 = OUT_BUCKET + "/FindMaxVectorSize_out";
+    // step2 - NumberDps
+    public static String Step2Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/filteredDps";
+    public static String Step2Arg2 = OUT_BUCKET + "/NumberDps_out";
 
-    // step3 - JoinPairLabel
-    public static String Step3Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/pairsToDps";
-    public static String Step3Arg2 = IN_BUCKET + "/hypernym_pairs_annotated.txt";
-    public static String Step3Arg3 = OUT_BUCKET + "/JoinPairLabel_out";
+    /*
+    MapReduce/src/test/out1/dpsToPair
+    MapReduce/src/test/out2/dpsToId
+    MapReduce/src/test/out3
+    * */
+    // step3 - JoinDpIdsWithPairs
+    public static String Step3Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/dpsToPair";
+    public static String Step3Arg2 = OUT_BUCKET + "/NumberDps_out/dpsToId";
+    public static String Step3Arg3 = OUT_BUCKET + "/JoinDpIdsWithPairs_out";
 
-    // step4 - CountDpsPerPair
-    public static String Step4Arg1 = OUT_BUCKET + "/JoinPairLabel_out";
-    public static String Step4Arg2 = OUT_BUCKET + "/FindMaxVectorSize_out";
-    public static String Step4Arg3 = OUT_BUCKET + "/CountDpsPerPair_out";
+//    // step2 - FindMaxVectorSize
+//    public static String Step2Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/vecSizes";
+//    public static String Step2Arg2 = OUT_BUCKET + "/FindMaxVectorSize_out";
 
-    // step5 - CreateLabeledVector
-    public static String Step5Arg1 = OUT_BUCKET + "/CountDpsPerPair_out";
-    public static String Step5Arg2 = OUT_BUCKET + "/CreateLabeledVector_out";
-
-    // step6 - MergeVectors
-    public static String Step6Arg1 = OUT_BUCKET + "/CreateLabeledVector_out";
-    public static String Step6Arg2 = OUT_BUCKET + "/MergeVectors_out";
+//    // step3 - JoinPairLabel
+//    public static String Step3Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/pairsToDps";
+//    public static String Step3Arg2 = IN_BUCKET + "/hypernym_pairs_annotated.txt";
+//    public static String Step3Arg3 = OUT_BUCKET + "/JoinPairLabel_out";
+//
+//    // step4 - CountDpsPerPair
+//    public static String Step4Arg1 = OUT_BUCKET + "/JoinPairLabel_out";
+//    public static String Step4Arg2 = OUT_BUCKET + "/FindMaxVectorSize_out";
+//    public static String Step4Arg3 = OUT_BUCKET + "/CountDpsPerPair_out";
+//
+//    // step5 - CreateLabeledVector
+//    public static String Step5Arg1 = OUT_BUCKET + "/CountDpsPerPair_out";
+//    public static String Step5Arg2 = OUT_BUCKET + "/CreateLabeledVector_out";
+//
+//    // step6 - MergeVectors
+//    public static String Step6Arg1 = OUT_BUCKET + "/CreateLabeledVector_out";
+//    public static String Step6Arg2 = OUT_BUCKET + "/MergeVectors_out";
 }

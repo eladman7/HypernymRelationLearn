@@ -31,23 +31,23 @@ public class AmazonEmrRunner {
 
         // STEP2
         String[] args2 = {Properties.Step2Arg1, Properties.Step2Arg2};
-        stepConfigs.add(buildStep(args2, "FindMaxVectorSize", "Find maximal vector size"));
+        stepConfigs.add(buildStep(args2, "NumberDps", "Number dps"));
 
         // STEP3
         String[] args3 = {Properties.Step3Arg1, Properties.Step3Arg2, Properties.Step3Arg3};
-        stepConfigs.add(buildStep(args3, "JoinPairLabel", "Join label to pair"));
-
-        // STEP4
-        String[] args4 = {Properties.Step4Arg1, Properties.Step4Arg2, Properties.Step4Arg3};
-        stepConfigs.add(buildStep(args4, "CountDpsPerPair", "Count DPs per pair"));
-
-        // STEP5
-        String[] args5 = {Properties.Step5Arg1, Properties.Step5Arg2};
-        stepConfigs.add(buildStep(args5, "CreateLabeledVector", "Create labeled examples"));
-
-        // STEP6
-        String[] args6 = {Properties.Step6Arg1, Properties.Step6Arg2};
-        stepConfigs.add(buildStep(args6, "MergeVectors", "Merge labeled examples"));
+        stepConfigs.add(buildStep(args3, "JoinDpIdsWithPairs", "Join dp ids and pairs"));
+//
+//        // STEP4
+//        String[] args4 = {Properties.Step4Arg1, Properties.Step4Arg2, Properties.Step4Arg3};
+//        stepConfigs.add(buildStep(args4, "CountDpsPerPair", "Count DPs per pair"));
+//
+//        // STEP5
+//        String[] args5 = {Properties.Step5Arg1, Properties.Step5Arg2};
+//        stepConfigs.add(buildStep(args5, "CreateLabeledVector", "Create labeled examples"));
+//
+//        // STEP6
+//        String[] args6 = {Properties.Step6Arg1, Properties.Step6Arg2};
+//        stepConfigs.add(buildStep(args6, "MergeVectors", "Merge labeled examples"));
 
         Map<String, String> jvmProperties = new HashMap<>();
         jvmProperties.put("mapred.child.java.opts", "-Xmx4096m");
