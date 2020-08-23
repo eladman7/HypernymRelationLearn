@@ -31,6 +31,9 @@ public class CreateLabeledVector {
         String res = taggedKey.toString();
         if (res.endsWith(FIRST_TAG)) {
             res = res.substring(0, res.length() - 1); // remove FIRST_TAG
+        } else {
+//            word1\tword2:0
+            res = res.split(Pattern.quote(":"))[0];
         }
         return new Text(res.trim());
     }
@@ -61,7 +64,7 @@ public class CreateLabeledVector {
 
     // todo: memory assumption - all vector can be kept in memory before it is written
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
-        private Boolean currentLabel;
+        private String currentLabel;
         private String currentPair;
         private StringBuilder vectorStr;
 
@@ -87,7 +90,7 @@ public class CreateLabeledVector {
                 currentLabel = null;
             }
             if (key.toString().endsWith(FIRST_TAG)) {
-                currentLabel = Boolean.parseBoolean(values.iterator().next().toString());
+                currentLabel = values.iterator().next().toString();
             } else {
                 vectorStr.append(values.iterator().next().toString());
                 vectorStr.append(",");
@@ -104,6 +107,9 @@ public class CreateLabeledVector {
 
         private String extractPairFromKey(String key) {
             String[] split = key.split("\\s+");
+            if (isLabelData(key)) {
+                return split[0] + "\t" + split[1];
+            }
             return split[0] + "\t" + split[1].split(Pattern.quote(":"))[0];
         }
     }
