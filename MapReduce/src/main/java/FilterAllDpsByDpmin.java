@@ -62,20 +62,36 @@ public class FilterAllDpsByDpmin {
             // example for writing from design doc: <<x like y>:dog-animal , [ngram1]>
             // or  <<x like y> , [dog-animal:ngram1]>
             Text taggedKey;
+            String extractedPair;
+            String[] pairSplit;
             for (String pair : pairToDp.keySet()) {
                 taggedKey = new Text(VALUES_TAG + pairToDp.get(pair));
-                context.write(taggedKey, new Text(pair + ":" + stemmedGram.toString()));
+                pairSplit = pair.split("\\s+");
+                extractedPair = extractWord(pairSplit[0]) + "\t" + extractWord(pairSplit[1]);
+                context.write(taggedKey, new Text(extractedPair + ":" + stemmedGram.toString()));
             }
         }
 
         // filtering cases like this:
         // a missing word
         // are	are/VBP/ROOT/0 branch/NN/nn/3 //NN/attr/1	10	1968,3	1974,2	1981,4	1993,1
+        // todo: maybe if noun appears more than once in an ngram fail it
         private boolean isValidNgram(Text gram) {
             String[] splittedGram = gram.toString().split("\\s+");
             if (StringUtils.isEmpty(splittedGram[0])) return false;
             for (int i = 1; i < splittedGram.length; i++) {
                 if (!validWordDesc(splittedGram[i])) return false;
+                if (!validWord(splittedGram[i])) return false;
+            }
+            return true;
+        }
+
+        // filter special chars within words: !@#$%^&*()_+-=,./;:'"[{}]\|
+        private boolean validWord(String wordDesc) {
+            String specialChars = "!@#$%^&*()_+-=,./;:'[{}]\\|;\"";
+            String word = wordDesc.split(Pattern.quote("/"))[0];
+            for (int i = 0; i < specialChars.length(); i++) {
+                if (word.contains(String.valueOf(specialChars.charAt(i)))) return false;
             }
             return true;
         }
@@ -94,7 +110,7 @@ public class FilterAllDpsByDpmin {
             for (int i = 1; i < gramSplit.length; i++) {
                 if (LingusticUtils.isNoun(gramSplit[i])) {
                     word = gramSplit[i].split(Pattern.quote("/"))[0];
-                    if (word.equals(gramSplit[0])) stemRoot = true;
+                    if (word.equals(gramSplit[0]) && extractPointer(gramSplit[i]) == 0) stemRoot = true;
                     stemmedWord = LingusticUtils.stem(word);
                     gramSplit[i] = gramSplit[i].replace(word, stemmedWord);
                 }
@@ -166,16 +182,24 @@ public class FilterAllDpsByDpmin {
                 String[] wordSplit = gramSplit[i].split(Pattern.quote("/"));
                 int pointer = Integer.parseInt(wordSplit[3]);
                 if (pointer != 0) {
-                    graph.put(wordSplit[0], gramSplit[pointer]);
+                    graph.put(gramSplit[i], gramSplit[pointer]);
                 } else {
-                    graph.put(wordSplit[0], getWordDescByWord(gramSplit[pointer], gramSplit));
+                    graph.put(gramSplit[i], getWordDescOfFirstWord(gramSplit[pointer], gram.toString()));
                 }
             }
             return graph;
         }
 
+        private String getWordDescOfFirstWord(String s, String gram) {
+            String[] gramSplit = gram.split("\\s+");
+            for (int i = 1; i < gramSplit.length; i++) {
+                if (extractWord(gramSplit[i]).equals(s) && extractPointer(gramSplit[i]) == 0) return gramSplit[i];
+            }
+            return null;
+        }
 
-        private String getWordDescByWord(String s, String[] gramSplit) {
+        private String getWordDescByWord(String s, String gram) {
+            String[] gramSplit = gram.split("\\s+");
             for (int i = 1; i < gramSplit.length; i++) {
                 if (extractWord(gramSplit[i]).equals(s)) return gramSplit[i];
             }
@@ -192,29 +216,38 @@ public class FilterAllDpsByDpmin {
          */
         private String buildDp(NGramData nGramData, String pair) {
             String[] splitPair = pair.split("\\s+");
-            if (splitPair[0].equals(nGramData.getGraph().get(splitPair[0]))) return null;
+            if (splitPair[0].equals(nGramData.getGraph().get(splitPair[0])))
+                return null;
 
             StringBuilder dp = new StringBuilder();
             String currentKey = splitPair[0];
             String target = splitPair[1];
-            dp.append(nGramData.getWordToWordDesc().get(currentKey)
-                    .replaceFirst(Pattern.quote(currentKey), "X"));
+            dp.append(currentKey.replaceFirst(Pattern.quote(extractWord(currentKey)), "X"));
             String currentVal;
+            int counter = 0;
             do {
+                if (counter == nGramData.getnGram().toString().split("\\s+").length) {
+                    System.out.println("***************************************");
+                    System.out.println("BAD NGRAM!!!! " + nGramData.getnGram().toString());
+                    System.out.println("counter: " + counter + " pair: " + pair);
+                    System.out.println("***************************************");
+//                    abound	abound/NN/attr/0 in/IN/prep/1 countri/NNS/pobj/2 in/IN/prep/3 world/NN/pobj/4
+                }
                 dp.append("-");
                 currentVal = nGramData.getGraph().get(currentKey);
                 // if found self arc its a dead end
-                if (currentKey.equals(extractWord(currentVal))) {
+                if (currentKey.equals(currentVal)) {
                     return null;
                 }
                 // found a loop
-                else if (extractWord(currentVal).equals(splitPair[0])) {
+                else if (currentVal.equals(splitPair[0])) {
                     return null;
-                } else if (extractWord(currentVal).equals(target)) {
-                    dp.append(currentVal.replaceFirst(Pattern.quote(target), "Y"));
+                } else if (currentVal.equals(target)) {
+                    dp.append(currentVal.replaceFirst(Pattern.quote(extractWord(target)), "Y"));
                 } else dp.append(currentVal);
-                currentKey = extractWord(currentVal);
-            } while (!(extractWord(currentVal).equals(target)));
+                counter++;
+                currentKey = currentVal;
+            } while (!currentVal.equals(target));
             return cleanDP(dp.toString());
         }
 
@@ -245,10 +278,15 @@ public class FilterAllDpsByDpmin {
             int half = (onlyNounsLst.size() % 2 == 0) ? onlyNounsLst.size() / 2 : (onlyNounsLst.size() / 2) + 1;
             for (int i = 0; i < half; i++) {
                 for (int j = i + 1; j < onlyNounsLst.size(); j++) {
-                    result.add(extractWord(onlyNounsLst.get(i)) + "\t" + extractWord(onlyNounsLst.get(j)));
+//                    result.add(extractWord(onlyNounsLst.get(i)) + "\t" + extractWord(onlyNounsLst.get(j)));
+                    result.add(onlyNounsLst.get(i) + "\t" + onlyNounsLst.get(j));
                 }
             }
             return result;
+        }
+
+        private int extractPointer(String wordDescription) {
+            return Integer.parseInt(wordDescription.substring(wordDescription.lastIndexOf("/") + 1));
         }
 
         private String extractWord(String wordDescription) {
@@ -288,7 +326,7 @@ public class FilterAllDpsByDpmin {
                 currentDPValuesCounter = 0;
                 mo.write(new Text(newKey), null, "filteredDps/filteredDp");
             }
-            for (int i = 0; i < currentDPValuesCounter; i++) {
+            for (int i = 0; i < DPMIN; i++) {
                 mo.write(new Text(newKey), new Text(tempList.get(i)), "dpsToPair/dpToPair");
             }
             // write the rest of the values
