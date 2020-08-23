@@ -26,28 +26,36 @@ public class AmazonEmrRunner {
         stepConfigs.add(enableDebugging);
 
         // STEP1
-        String[] args1 = {Properties.Step1Arg1, Properties.Step1Arg2, Properties.Step1Arg3/*, Properties.Step1Arg4*/};
+        String[] args1 = {Properties.Step1Arg1, Properties.Step1Arg2, Properties.Step1Arg3};
         stepConfigs.add(buildStep(args1, "FilterAllDpsByDpmin", "Filter DPs above DPMin"));
-
-        // STEP2
-        String[] args2 = {Properties.Step2Arg1, Properties.Step2Arg2};
-        stepConfigs.add(buildStep(args2, "NumberDps", "Number dps"));
-
-        // STEP3
-        String[] args3 = {Properties.Step3Arg1, Properties.Step3Arg2, Properties.Step3Arg3};
-        stepConfigs.add(buildStep(args3, "JoinDpIdsWithPairs", "Join dp ids and pairs"));
+//
+//        // STEP2
+//        String[] args2 = {Properties.Step2Arg1, Properties.Step2Arg2};
+//        stepConfigs.add(buildStep(args2, "NumberDps", "Number dps"));
+//
+//        // STEP3
+//        String[] args3 = {Properties.Step3Arg1, Properties.Step3Arg2, Properties.Step3Arg3};
+//        stepConfigs.add(buildStep(args3, "JoinDpIdsWithPairs", "Join dp ids and pairs"));
 //
 //        // STEP4
-//        String[] args4 = {Properties.Step4Arg1, Properties.Step4Arg2, Properties.Step4Arg3};
-//        stepConfigs.add(buildStep(args4, "CountDpsPerPair", "Count DPs per pair"));
+//        String[] args4 = {Properties.Step4Arg1, Properties.Step4Arg2};
+//        stepConfigs.add(buildStep(args4, "FindMaxVectorSize", "Find max vector size"));
 //
 //        // STEP5
-//        String[] args5 = {Properties.Step5Arg1, Properties.Step5Arg2};
-//        stepConfigs.add(buildStep(args5, "CreateLabeledVector", "Create labeled examples"));
+//        String[] args5 = {Properties.Step5Arg1, Properties.Step5Arg2, Properties.Step5Arg3};
+//        stepConfigs.add(buildStep(args5, "JoinPairLabel", "Join pairs and labels"));
 //
 //        // STEP6
-//        String[] args6 = {Properties.Step6Arg1, Properties.Step6Arg2};
-//        stepConfigs.add(buildStep(args6, "MergeVectors", "Merge labeled examples"));
+//        String[] args6 = {Properties.Step6Arg1, Properties.Step6Arg2, Properties.Step6Arg3};
+//        stepConfigs.add(buildStep(args6, "CountDpsPerPair", "Count dps per pair"));
+//
+//        // STEP7
+//        String[] args7 = {Properties.Step7Arg1, Properties.Step7Arg2};
+//        stepConfigs.add(buildStep(args7, "CreateLabeledVector", "Create labeled examples"));
+//
+//        // STEP8
+//        String[] args8 = {Properties.Step8Arg1, Properties.Step8Arg2};
+//        stepConfigs.add(buildStep(args8, "MergeVectors", "Merge labeled examples"));
 
         Map<String, String> jvmProperties = new HashMap<>();
         jvmProperties.put("mapred.child.java.opts", "-Xmx4096m");

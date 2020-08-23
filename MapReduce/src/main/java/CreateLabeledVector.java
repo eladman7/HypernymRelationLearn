@@ -51,7 +51,7 @@ public class CreateLabeledVector {
             if (isLabelData(splittedGram[2])) {
                 context.write(new Text(splittedGram[0] + "\t" + splittedGram[1] + FIRST_TAG), new Text(splittedGram[2]));
             } else {
-                String[] indexToCountPair = splittedGram[2].split(",");
+                String[] indexToCountPair = splittedGram[2].split(Pattern.quote(","));
                 String key = splittedGram[0] + "\t" + splittedGram[1] + ":" + indexToCountPair[0];
                 String value = indexToCountPair[1];
                 context.write(new Text(key), new Text(value));
@@ -86,7 +86,7 @@ public class CreateLabeledVector {
                 vectorStr = new StringBuilder();
                 currentLabel = null;
             }
-            if (key.toString().contains(FIRST_TAG)) {
+            if (key.toString().endsWith(FIRST_TAG)) {
                 currentLabel = Boolean.parseBoolean(values.iterator().next().toString());
             } else {
                 vectorStr.append(values.iterator().next().toString());
@@ -94,12 +94,12 @@ public class CreateLabeledVector {
             }
         }
 
-        private void writeVector(Context context) throws IOException, InterruptedException {
-            context.write(new Text(vectorStr.toString() + currentLabel), null);
-        }
-
         public void cleanup(Context context) throws IOException, InterruptedException {
             writeVector(context);
+        }
+
+        private void writeVector(Context context) throws IOException, InterruptedException {
+            context.write(new Text(vectorStr.toString()), new Text(String.valueOf(currentLabel)));
         }
 
         private String extractPairFromKey(String key) {
@@ -117,8 +117,6 @@ public class CreateLabeledVector {
 
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
-//        List<String> strings = Files.readAllLines(Paths.get(args[1]));
-//        conf.set(VEC_SIZE_NAME, strings.get(0).split("\\s+")[1]);
         Job job = new Job(conf, "Create labeled vector");
         job.setJarByClass(CreateLabeledVector.class);
         job.setMapperClass(CreateLabeledVector.MapperClass.class);
@@ -133,7 +131,6 @@ public class CreateLabeledVector {
         job.setOutputFormatClass(TextOutputFormat.class);
 
         Path out3Input = new Path(args[0]);
-
         Path outputPath = new Path(args[1]);
 
         // SequenceFileInputFormat, TextInputFormat

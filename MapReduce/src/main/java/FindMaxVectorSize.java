@@ -22,29 +22,29 @@ import java.io.IOException;
  * arguments: 0- input path, 1-output path
  */
 public class FindMaxVectorSize {
-    public static class MapperClass extends Mapper<LongWritable, Text, Text, LongWritable> {
+    public static class MapperClass extends Mapper<LongWritable, Text, Text, Text> {
         @Override
         public void map(LongWritable lineId, Text gram, Context context) throws IOException, InterruptedException {
             context.write(new Text(gram.toString().split("\\s+")[0]),
-                    new LongWritable(Long.parseLong(gram.toString().split("\\s+")[1])));
+                    new Text(gram.toString().split("\\s+")[1]));
         }
     }
 
-    public static class ReducerClass extends Reducer<Text, LongWritable, Text, LongWritable> {
+    public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
         @Override
-        public void reduce(Text key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
+        public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             long currentMax = 0;
-            for (LongWritable value : values) {
-                if (currentMax < value.get())
-                    currentMax = value.get();
+            for (Text value : values) {
+                if (currentMax < Long.parseLong(value.toString()))
+                    currentMax = Long.parseLong(value.toString());
             }
-            context.write(key, new LongWritable(currentMax));
+            context.write(key, new Text(String.valueOf(currentMax)));
         }
     }
 
-    public static class PartitionerClass extends Partitioner<Text, LongWritable> {
+    public static class PartitionerClass extends Partitioner<Text, Text> {
         @Override
-        public int getPartition(Text key, LongWritable value, int numPartitions) {
+        public int getPartition(Text key, Text value, int numPartitions) {
             return (key.hashCode() & Integer.MAX_VALUE) % numPartitions;
         }
     }
@@ -57,9 +57,9 @@ public class FindMaxVectorSize {
         job.setPartitionerClass(FindMaxVectorSize.PartitionerClass.class);
         job.setReducerClass(FindMaxVectorSize.ReducerClass.class);
         job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputValueClass(LongWritable.class);
+        job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(LongWritable.class);
+        job.setOutputValueClass(Text.class);
         job.setCombinerClass(FindMaxVectorSize.ReducerClass.class);
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);

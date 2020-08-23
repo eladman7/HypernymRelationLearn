@@ -15,43 +15,38 @@ public class Properties {
 
     // step1 - FilterAllDpsByDpmin
     // sample file name   /biarcs.05-of-99
-    public static String Step1Arg1 = IN_BUCKET + "/biarcs/biarcs.05-of-99";
+    public static String Step1Arg1 = IN_BUCKET + "/biarcs/biarcs.01-of-99";
     public static String Step1Arg2 = OUT_BUCKET + "/FilterAllDpsByDpmin_out";
     public static String Step1Arg3 = DPMIN;
 
-    // step2 - NumberDps
-    public static String Step2Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/filteredDps";
-    public static String Step2Arg2 = OUT_BUCKET + "/NumberDps_out";
-
-    /*
-    MapReduce/src/test/out1/dpsToPair
-    MapReduce/src/test/out2/dpsToId
-    MapReduce/src/test/out3
-    * */
-    // step3 - JoinDpIdsWithPairs
-    public static String Step3Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/dpsToPair";
-    public static String Step3Arg2 = OUT_BUCKET + "/NumberDps_out/dpsToId";
-    public static String Step3Arg3 = OUT_BUCKET + "/JoinDpIdsWithPairs_out";
-
-//    // step2 - FindMaxVectorSize
-//    public static String Step2Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/vecSizes";
-//    public static String Step2Arg2 = OUT_BUCKET + "/FindMaxVectorSize_out";
-
-//    // step3 - JoinPairLabel
-//    public static String Step3Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/pairsToDps";
-//    public static String Step3Arg2 = IN_BUCKET + "/hypernym_pairs_annotated.txt";
-//    public static String Step3Arg3 = OUT_BUCKET + "/JoinPairLabel_out";
+//    // step2 - NumberDps
+//    public static String Step2Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/filteredDps";
+//    public static String Step2Arg2 = OUT_BUCKET + "/NumberDps_out";
 //
-//    // step4 - CountDpsPerPair
-//    public static String Step4Arg1 = OUT_BUCKET + "/JoinPairLabel_out";
+//    // step3 - JoinDpIdsWithPairs
+//    public static String Step3Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/dpsToPair";
+//    public static String Step3Arg2 = OUT_BUCKET + "/NumberDps_out/dpsToId";
+//    public static String Step3Arg3 = OUT_BUCKET + "/JoinDpIdsWithPairs_out";
+//
+//    // step4 - FindMaxVectorSize
+//    public static String Step4Arg1 = OUT_BUCKET + "/NumberDps_out/vecSizes";
 //    public static String Step4Arg2 = OUT_BUCKET + "/FindMaxVectorSize_out";
-//    public static String Step4Arg3 = OUT_BUCKET + "/CountDpsPerPair_out";
 //
-//    // step5 - CreateLabeledVector
-//    public static String Step5Arg1 = OUT_BUCKET + "/CountDpsPerPair_out";
-//    public static String Step5Arg2 = OUT_BUCKET + "/CreateLabeledVector_out";
+//    // step5 - JoinPairLabel
+//    public static String Step5Arg1 = OUT_BUCKET + "/JoinDpIdsWithPairs_out";
+//    public static String Step5Arg2 = IN_BUCKET + "/hypernym_pairs_annotated.txt";
+//    public static String Step5Arg3 = OUT_BUCKET + "/JoinPairLabel_out";
 //
-//    // step6 - MergeVectors
-//    public static String Step6Arg1 = OUT_BUCKET + "/CreateLabeledVector_out";
-//    public static String Step6Arg2 = OUT_BUCKET + "/MergeVectors_out";
+//    // step6 - CountDpsPerPair
+//    public static String Step6Arg1 = OUT_BUCKET + "/JoinPairLabel_out";
+//    public static String Step6Arg2 = OUT_BUCKET + "/FindMaxVectorSize_out";
+//    public static String Step6Arg3 = OUT_BUCKET + "/CountDpsPerPair_out";
+//
+//    // step7 - CreateLabeledVector
+//    public static String Step7Arg1 = OUT_BUCKET + "/CountDpsPerPair_out";
+//    public static String Step7Arg2 = OUT_BUCKET + "/CreateLabeledVector_out";
+//
+//    // step8 - MergeVectors
+//    public static String Step8Arg1 = OUT_BUCKET + "/CreateLabeledVector_out";
+//    public static String Step8Arg2 = OUT_BUCKET + "/MergeVectors_out";
 }

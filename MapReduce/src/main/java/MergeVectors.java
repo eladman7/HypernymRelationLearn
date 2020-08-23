@@ -31,10 +31,15 @@ public class MergeVectors {
 
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            for (Text text: values)
-                context.write(text, null);
+            String vecKey, vecVal;
+            int lastCommaIndex;
+            for (Text vector : values) {
+                lastCommaIndex = vector.toString().lastIndexOf(",");
+                vecKey = vector.toString().substring(0, lastCommaIndex + 1).trim();
+                vecVal = vector.toString().substring(lastCommaIndex + 1).trim();
+                context.write(new Text(vecKey), new Text(vecVal));
+            }
         }
-
     }
 
     public static class PartitionerClass extends Partitioner<Text, Text> {
