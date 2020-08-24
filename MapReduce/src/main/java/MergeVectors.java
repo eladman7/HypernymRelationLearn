@@ -56,6 +56,7 @@ public class MergeVectors {
         job.setMapperClass(MergeVectors.MapperClass.class);
         job.setPartitionerClass(MergeVectors.PartitionerClass.class);
         job.setReducerClass(MergeVectors.ReducerClass.class);
+        job.setCombinerClass(MergeVectors.ReducerClass.class);
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
