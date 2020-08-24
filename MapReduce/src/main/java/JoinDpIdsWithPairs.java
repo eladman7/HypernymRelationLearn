@@ -9,6 +9,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
@@ -24,6 +25,7 @@ import java.util.regex.Pattern;
 public class JoinDpIdsWithPairs {
     public static String FIRST_TAG = "#1";
     public static String SECOND_TAG = "#2";
+    public static String VEC_SIZE_NAME = "vec_size";
 
     public static Text removeTag(Text taggedKey) {
         String res = taggedKey.toString();
@@ -41,12 +43,23 @@ public class JoinDpIdsWithPairs {
             String[] splittedGram = gram.toString().split("\\s+");
             // X/advcl-Y/nsubj	0
             if (splittedGram.length == 2) {
-                context.write(new Text(splittedGram[0] + FIRST_TAG), new Text(splittedGram[1]));
+                if (splittedGram[0].equals(VEC_SIZE_NAME)) {
+                    context.write(new Text(splittedGram[0]), new Text(splittedGram[1]));
+                } else {
+                    context.write(new Text(splittedGram[0] + FIRST_TAG), new Text(splittedGram[1]));
+                }
             }
             // X/advmod-Y/acomp	insulin	resist:are	are/VBP/advcl/0 insulin/NN/advmod/3 resist/NN/acomp/1
+            // X/advmod-Y/acomp resist insulin:are	are/VBP/advcl/0 insulin/NN/advmod/3 resist/NN/acomp/1
             else {
+                String originalVal = gram.toString().replace(splittedGram[0], "").trim();
+                String originalPair = originalVal.split(Pattern.quote(":"))[0];
+                String flippedPair = originalPair.split("\\s+")[1] + "\t" + originalPair.split("\\s+")[0];
+                String valWithFlippedPair = originalVal.replace(originalPair, flippedPair);
                 context.write(new Text(splittedGram[0] + SECOND_TAG),
-                        new Text(gram.toString().replace(splittedGram[0], "").trim()));
+                        new Text(originalVal));
+                context.write(new Text(splittedGram[0] + SECOND_TAG),
+                        new Text(valWithFlippedPair));
             }
         }
     }
@@ -55,8 +68,10 @@ public class JoinDpIdsWithPairs {
         private String currentKey;
         private int currentKeyIndex;
         private boolean gotIndex;
+        private MultipleOutputs<Text, Text> mo;
 
         public void setup(Context context) {
+            mo = new MultipleOutputs<>(context);
             gotIndex = false;
             currentKey = "";
             currentKeyIndex = -1;
@@ -64,6 +79,10 @@ public class JoinDpIdsWithPairs {
 
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+            if (key.toString().equals(VEC_SIZE_NAME)) {
+                writeMaxVecSize(values);
+                return;
+            }
             if (!removeTag(key).toString().equals(currentKey)) {
                 currentKey = removeTag(key).toString();
             }
@@ -86,9 +105,22 @@ public class JoinDpIdsWithPairs {
                     pair = valSplit[0] + "\t" + secondSplit[0];
                     ngram = value.toString().split(Pattern.quote(":"))[1];
                     curValue = currentKeyIndex + ":" + removeTag(key).toString() + ":" + ngram;
-                    context.write(new Text(pair), new Text(curValue));
+                    mo.write(new Text(pair), new Text(curValue),"pairToNumberedDps/pairToNumberedDp");
                 }
             }
+        }
+
+        public void cleanup(Context context) throws IOException, InterruptedException {
+            mo.close();
+        }
+
+        private void writeMaxVecSize(Iterable<Text> values) throws IOException, InterruptedException {
+            long currentMax = 0;
+            for (Text value : values) {
+                if (currentMax < Long.parseLong(value.toString()))
+                    currentMax = Long.parseLong(value.toString());
+            }
+            mo.write(new Text(VEC_SIZE_NAME), new Text(String.valueOf(currentMax)),"maxVecSize/maxVecSize");
         }
     }
 
@@ -116,11 +148,17 @@ public class JoinDpIdsWithPairs {
 
         Path dpsToPair = new Path(args[0]);
         Path dpToIds = new Path(args[1]);
-        Path outputPath = new Path(args[2]);
+        Path vecSizes = new Path(args[2]);
+        Path outputPath = new Path(args[3]);
+        MultipleOutputs.addNamedOutput(job, "maxVecSize", TextOutputFormat.class,
+                Text.class, Text.class);
+        MultipleOutputs.addNamedOutput(job, "pairToNumberedDps", TextOutputFormat.class,
+                Text.class, Text.class);
 
         // SequenceFileInputFormat, TextInputFormat
         MultipleInputs.addInputPath(job, dpsToPair, TextInputFormat.class, MapperClass.class);
         MultipleInputs.addInputPath(job, dpToIds, TextInputFormat.class, MapperClass.class);
+        MultipleInputs.addInputPath(job, vecSizes, TextInputFormat.class, MapperClass.class);
         FileOutputFormat.setOutputPath(job, outputPath);
 
         System.exit(job.waitForCompletion(true) ? 0 : 1);

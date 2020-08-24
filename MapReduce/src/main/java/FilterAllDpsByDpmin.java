@@ -223,6 +223,7 @@ public class FilterAllDpsByDpmin {
             String currentKey = splitPair[0];
             String target = splitPair[1];
             dp.append(currentKey.replaceFirst(Pattern.quote(extractWord(currentKey)), "X"));
+//            dp.append(currentKey);
             String currentVal;
             int counter = 0;
             do {
@@ -244,6 +245,7 @@ public class FilterAllDpsByDpmin {
                     return null;
                 } else if (currentVal.equals(target)) {
                     dp.append(currentVal.replaceFirst(Pattern.quote(extractWord(target)), "Y"));
+//                    dp.append(currentVal);
                 } else dp.append(currentVal);
                 counter++;
                 currentKey = currentVal;
@@ -298,13 +300,11 @@ public class FilterAllDpsByDpmin {
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
         private MultipleOutputs<Text, Text> mo;
         private long currentDPValuesCounter;
-        private String currentKey;
         private int DPMIN;
 
         public void setup(Context context) {
             DPMIN = Integer.parseInt(context.getConfiguration().get(DPMIN_NAME));
             currentDPValuesCounter = 0;
-            currentKey = "";
             mo = new MultipleOutputs<>(context);
         }
 
@@ -323,10 +323,8 @@ public class FilterAllDpsByDpmin {
             }
             // key changed
             String newKey = removeTag(key);
-            if (!newKey.equals(currentKey)) {
-                currentDPValuesCounter = 0;
-                mo.write(new Text(newKey), null, "filteredDps/filteredDp");
-            }
+            currentDPValuesCounter = 0;
+            mo.write(new Text(newKey), null, "filteredDps/filteredDp");
             for (int i = 0; i < DPMIN; i++) {
                 mo.write(new Text(newKey), new Text(tempList.get(i)), "dpsToPair/dpToPair");
             }
