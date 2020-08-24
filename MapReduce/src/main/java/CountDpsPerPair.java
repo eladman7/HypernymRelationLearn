@@ -153,7 +153,7 @@ public class CountDpsPerPair {
                 counterOfIndexInPair = 0;
                 lastIndexOfPair = -1;
             }
-            if (key.toString().contains(FIRST_TAG)) {
+            if (key.toString().endsWith(FIRST_TAG)) {
                 Text next = values.iterator().next();
                 context.write(new Text(key_str), next);
             } else {

@@ -28,9 +28,9 @@ public class JoinPairLabel {
     public static Text removeTag(Text taggedKey) {
         String res = taggedKey.toString();
         if (res.endsWith(FIRST_TAG)) {
-            res = res.replaceFirst(Pattern.quote(FIRST_TAG), ""); // remove FIRST_TAG
+            res = res.substring(0, res.length() - FIRST_TAG.length()); // remove First_TAG
         } else if (res.endsWith(SECOND_TAG)) {
-            res = res.replaceFirst(Pattern.quote(SECOND_TAG), ""); // remove SECOND_TAG
+            res = res.substring(0, res.length() - SECOND_TAG.length()); // remove SECOND_TAG
         }
         return new Text(res.trim());
     }
@@ -67,12 +67,12 @@ public class JoinPairLabel {
                 currentKey = removeTag(key).toString();
                 gotLabeled = false;
             }
-            if (key.toString().contains(FIRST_TAG)) {
+            if (key.toString().endsWith(FIRST_TAG)) {
                 Iterator<Text> iterator = values.iterator();
                 Text next = iterator.next();
                 gotLabeled = true;
                 context.write(removeTag(key), next);
-            } else if (key.toString().contains(SECOND_TAG)) {
+            } else if (key.toString().endsWith(SECOND_TAG)) {
                 // ignoring unlabeled pairs
                 if (!gotLabeled) return;
                 for (Text value : values) {
