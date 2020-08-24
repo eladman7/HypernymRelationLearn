@@ -31,13 +31,8 @@ public class MergeVectors {
 
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            String vecKey, vecVal;
-            int lastCommaIndex;
             for (Text vector : values) {
-                lastCommaIndex = vector.toString().lastIndexOf(",");
-                vecKey = vector.toString().substring(0, lastCommaIndex + 1).trim();
-                vecVal = vector.toString().substring(lastCommaIndex + 1).trim();
-                context.write(new Text(vecKey), new Text(vecVal));
+                context.write(vector, new Text(""));
             }
         }
     }
@@ -56,7 +51,6 @@ public class MergeVectors {
         job.setMapperClass(MergeVectors.MapperClass.class);
         job.setPartitionerClass(MergeVectors.PartitionerClass.class);
         job.setReducerClass(MergeVectors.ReducerClass.class);
-        job.setCombinerClass(MergeVectors.ReducerClass.class);
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
