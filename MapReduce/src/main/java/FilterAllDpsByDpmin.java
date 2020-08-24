@@ -248,7 +248,8 @@ public class FilterAllDpsByDpmin {
                 counter++;
                 currentKey = currentVal;
             } while (!currentVal.equals(target));
-            return cleanDP(dp.toString());
+//            return cleanDP(dp.toString());
+            return dp.toString();
         }
 
         // input: X/NN/advmod/2-as/JJ/prep/1-Y/NN/acomp/0

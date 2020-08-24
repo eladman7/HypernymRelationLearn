@@ -100,8 +100,12 @@ public class CountDpsPerPair {
         public int getPartition(Text key, Text value, int numPartitions) {
             if (key.toString().startsWith(VEC_SIZE_TAG)) {
                 return (Integer.valueOf(removeTag(key)).hashCode() & Integer.MAX_VALUE) % numPartitions;
-            } else {
+            } else if (key.toString().endsWith(FIRST_TAG)) {
                 return (removeTag(key).hashCode() & Integer.MAX_VALUE) % numPartitions;
+            } else {
+                // key looks like that: zurich	basl	36:X/conj-Y/nsubj
+                String[] splittedGram = key.toString().split("\\s+");
+                return ((splittedGram[0] + "\t" + splittedGram[1]).hashCode() & Integer.MAX_VALUE) % numPartitions;
             }
         }
     }
