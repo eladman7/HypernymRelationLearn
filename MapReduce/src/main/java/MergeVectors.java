@@ -24,7 +24,7 @@ public class MergeVectors {
         String res = taggedKey.toString();
         if (res.startsWith(FIRST_TAG)) {
             res = res.replaceFirst(Pattern.quote(FIRST_TAG), ""); // remove FIRST_TAG
-        }else if (res.startsWith(SECOND_TAG)) {
+        } else if (res.startsWith(SECOND_TAG)) {
             res = res.replaceFirst(Pattern.quote(SECOND_TAG), ""); // remove FIRST_TAG
         }
         return new Text(res.trim());
@@ -46,15 +46,26 @@ public class MergeVectors {
     }
 
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
+        /*
+           @RELATION iris
+
+           @ATTRIBUTE sepallength  NUMERIC
+           @ATTRIBUTE sepalwidth   NUMERIC
+           @ATTRIBUTE petallength  NUMERIC
+           @ATTRIBUTE petalwidth   NUMERIC
+           @ATTRIBUTE class        {Iris-setosa,Iris-versicolor,Iris-virginica}
+        * */
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             if (key.toString().equals(FIRST_TAG + "KEY")) {
                 double vector_sz = Double.parseDouble(values.iterator().next().toString());
-                StringBuilder header = new StringBuilder();
+                StringBuilder header = new StringBuilder("@RELATION vectors\n");
                 for (int i = 0; i < vector_sz; i++) {
-                    header.append("col").append(i).append(",");
+                    header.append("@ATTRIBUTE ").append("col").append(i).append(" NUMERIC").append("\n");
                 }
-                context.write(new Text(header.toString()), new Text("label"));
+                header.append("@ATTRIBUTE ").append("class").append(" {True, False}").append("\n");
+                header.append("@DATA");
+                context.write(new Text(header.toString()), new Text(""));
                 return;
             }
             for (Text vector : values) {

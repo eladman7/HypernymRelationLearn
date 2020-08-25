@@ -76,6 +76,7 @@ public class CreateLabeledVector {
 
         // input: <pair dp_index, count>
         // output: <[2,0,1], true>
+        // todo: if we need to trace back a pair by a vector maybe output <pair, labeled_vector>
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             String keyStr = removeTag(key).toString();

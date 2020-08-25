@@ -244,24 +244,40 @@ public class FilterAllDpsByDpmin {
                 else if (currentVal.equals(splitPair[0])) {
                     return null;
                 } else if (currentVal.equals(target)) {
-                    dp.append(currentVal.replaceFirst(Pattern.quote(extractWord(target)), "Y"));
+                    dp.append(currentVal.replaceFirst(Pattern.quote(extractWord(target)), "X"));
 //                    dp.append(currentVal);
                 } else dp.append(currentVal);
                 counter++;
                 currentKey = currentVal;
             } while (!currentVal.equals(target));
-//            return cleanDP(dp.toString());
-            return dp.toString();
+            return cleanDP(dp.toString());
+//            return cleanDPWithPOS(dp.toString());
+//            return dp.toString();
         }
 
-        // input: X/NN/advmod/2-as/JJ/prep/1-Y/NN/acomp/0
-        // output: X/advmod-as/prep-Y/acomp
+        // input: X/NN/advmod/2-as/JJ/prep/1-X/NN/acomp/0
+        // output: X/advmod-as/prep-X/acomp
         private String cleanDP(String rawDp) {
             StringBuilder cleanDp = new StringBuilder();
             String[] nodes = rawDp.split(Pattern.quote("-"));
             for (String node : nodes) {
                 String[] splittedNode = node.split(Pattern.quote("/"));
                 cleanDp.append(splittedNode[0]).append("/").append(splittedNode[2]).append("-");
+            }
+            // remove last '-'
+            cleanDp.deleteCharAt(cleanDp.length() - 1);
+            return cleanDp.toString();
+        }
+
+        // input: X/NN/advmod/2-as/JJ/prep/1-Y/NN/acomp/0
+        // output: X/NN/advmod-as/JJ/prep-Y/NN/acomp
+        private String cleanDPWithPOS(String rawDp) {
+            StringBuilder cleanDp = new StringBuilder();
+            String[] nodes = rawDp.split(Pattern.quote("-"));
+            for (String node : nodes) {
+                String[] splittedNode = node.split(Pattern.quote("/"));
+                cleanDp.append(splittedNode[0]).append("/").append(splittedNode[1]).append("/")
+                        .append(splittedNode[2]).append("-");
             }
             // remove last '-'
             cleanDp.deleteCharAt(cleanDp.length() - 1);
@@ -282,7 +298,9 @@ public class FilterAllDpsByDpmin {
             for (int i = 0; i < half; i++) {
                 for (int j = i + 1; j < onlyNounsLst.size(); j++) {
 //                    result.add(extractWord(onlyNounsLst.get(i)) + "\t" + extractWord(onlyNounsLst.get(j)));
-                    result.add(onlyNounsLst.get(i) + "\t" + onlyNounsLst.get(j));
+                    if (!(extractWord(onlyNounsLst.get(i))).equals(extractWord(onlyNounsLst.get(j)))) {
+                        result.add(onlyNounsLst.get(i) + "\t" + onlyNounsLst.get(j));
+                    }
                 }
             }
             return result;
@@ -299,12 +317,12 @@ public class FilterAllDpsByDpmin {
 
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
         private MultipleOutputs<Text, Text> mo;
-        private long currentDPValuesCounter;
+//        private long currentDPValuesCounter;
         private int DPMIN;
 
         public void setup(Context context) {
             DPMIN = Integer.parseInt(context.getConfiguration().get(DPMIN_NAME));
-            currentDPValuesCounter = 0;
+//            currentDPValuesCounter = 0;
             mo = new MultipleOutputs<>(context);
         }
 
@@ -312,18 +330,20 @@ public class FilterAllDpsByDpmin {
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             // count values till reaching DPMin
             List<String> tempList = new ArrayList<>(DPMIN);
+            Set<String> uniquePairsPerDP = new HashSet<>(DPMIN);
             for (Text pairWithNgram : values) {
-                currentDPValuesCounter++;
+                uniquePairsPerDP.add(pairWithNgram.toString().split(Pattern.quote(":"))[0]);
+//                currentDPValuesCounter++;
                 tempList.add(pairWithNgram.toString());
-                if (currentDPValuesCounter == DPMIN) break;
+                if (uniquePairsPerDP.size() == DPMIN) break;
             }
-            if (currentDPValuesCounter < DPMIN) {
-                currentDPValuesCounter = 0;
+            if (uniquePairsPerDP.size() < DPMIN) {
+//                currentDPValuesCounter = 0;
                 return;
             }
             // key changed
             String newKey = removeTag(key);
-            currentDPValuesCounter = 0;
+//            currentDPValuesCounter = 0;
             mo.write(new Text(newKey), null, "filteredDps/filteredDp");
             for (int i = 0; i < DPMIN; i++) {
                 mo.write(new Text(newKey), new Text(tempList.get(i)), "dpsToPair/dpToPair");
