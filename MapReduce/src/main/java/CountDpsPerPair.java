@@ -44,6 +44,8 @@ public class CountDpsPerPair {
             res = res.substring(0, res.length() - 1); // remove First_TAG
         } else if (res.startsWith(VEC_SIZE_TAG)) {
             res = res.replaceFirst(Pattern.quote(VEC_SIZE_TAG), ""); // remove VEC_SIZE_TAG
+        } else {
+            res = res.split(Pattern.quote(":"))[0];
         }
         return res.trim();
     }
@@ -74,8 +76,8 @@ public class CountDpsPerPair {
                 // dog	animal	0:X/NN/prep/2-like/VB/xcomp/1-Y/NN/acomp/0:animal	animal/NN/acomp/0 like/VB/xcomp/1 dog/NN/prep/2
                 else {
                     String[] dpSplit = splittedGram[2].split(Pattern.quote(":"));
-                    newKey = splittedGram[0] + "\t" + splittedGram[1] + "\t" + dpSplit[0] + ":" + dpSplit[1];
-                    newVal = dpSplit[2];
+                    newKey = splittedGram[0] + "\t" + splittedGram[1] + ":" + dpSplit[0];
+                    newVal = dpSplit[1] + ":" + dpSplit[2];
                 }
                 context.write(new Text(newKey), new Text(newVal));
             }
@@ -104,8 +106,8 @@ public class CountDpsPerPair {
                 return (removeTag(key).hashCode() & Integer.MAX_VALUE) % numPartitions;
             } else {
                 // key looks like that: zurich	basl	36:X/conj-Y/nsubj
-                String[] splittedGram = key.toString().split("\\s+");
-                return ((splittedGram[0] + "\t" + splittedGram[1]).hashCode() & Integer.MAX_VALUE) % numPartitions;
+                String[] splittedGram = key.toString().split(Pattern.quote(":"));
+                return (splittedGram[0].hashCode() & Integer.MAX_VALUE) % numPartitions;
             }
         }
     }
@@ -122,9 +124,9 @@ public class CountDpsPerPair {
         */
     public static class ReducerClass extends Reducer<Text, Text, Text, Text> {
         private String currentPair;
-        private long lastIndexOfPair;
+        private int lastIndexOfPair;
         private long counterOfIndexInPair;
-        private long vec_size;
+        private int vec_size;
 
         public void setup(Context context) {
             currentPair = "";
@@ -135,17 +137,17 @@ public class CountDpsPerPair {
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             if (key.toString().startsWith(VEC_SIZE_TAG)) {
-                vec_size = Long.parseLong(values.iterator().next().toString());
+                vec_size = Integer.parseInt(values.iterator().next().toString());
                 return;
             }
-            String key_str = removeTag(key);
-            String pair = extractPairFromKey(key_str);
+            String pair = removeTag(key);
             if (!pair.equals(currentPair)) {
                 // fill gap from last index to vec size
                 if (StringUtils.isNotEmpty(currentPair)) {
                     if (lastIndexOfPair + 1 < vec_size) {
-                        for (long i = lastIndexOfPair + 1; i < vec_size; i++) {
-                            context.write(new Text(currentPair), new Text(i + "," + "0"));
+                        for (int i = lastIndexOfPair + 1; i < vec_size; i++) {
+                            context.write(new Text(currentPair), new Text(
+                                    addPadding(i, String.valueOf(vec_size).length()) + "," + "0"));
                         }
                     }
                 }
@@ -155,20 +157,23 @@ public class CountDpsPerPair {
             }
             if (key.toString().endsWith(FIRST_TAG)) {
                 Text next = values.iterator().next();
-                context.write(new Text(key_str), next);
+                context.write(new Text(currentPair), next);
             } else {
-                long index = extractDpIndexFromKey(key_str);
+                int index = extractDpIndexFromKey(key.toString());
                 // fill internal gaps of vector
                 if (lastIndexOfPair + 1 < index) {
-                    for (long i = lastIndexOfPair + 1; i < index; i++) {
-                        context.write(new Text(currentPair), new Text(i + "," + "0"));
+                    for (int i = lastIndexOfPair + 1; i < index; i++) {
+                        context.write(new Text(currentPair),
+                                new Text(addPadding(i, String.valueOf(vec_size).length()) + "," + "0"));
                     }
                 }
                 // continue with current index
                 for (Text value : values) {
                     counterOfIndexInPair++;
                 }
-                context.write(new Text(currentPair), new Text(index + "," + String.valueOf(counterOfIndexInPair)));
+                context.write(new Text(currentPair),
+                        new Text(addPadding(index, String.valueOf(vec_size).length())
+                                + "," + String.valueOf(counterOfIndexInPair)));
                 lastIndexOfPair = index;
                 counterOfIndexInPair = 0;
             }
@@ -177,20 +182,31 @@ public class CountDpsPerPair {
         @Override
         public void cleanup(Context context) throws IOException, InterruptedException {
             if (lastIndexOfPair + 1 < vec_size) {
-                for (long i = lastIndexOfPair + 1; i < vec_size; i++) {
-                    context.write(new Text(currentPair), new Text(i + "," + "0"));
+                for (int i = lastIndexOfPair + 1; i < vec_size; i++) {
+                    context.write(new Text(currentPair),
+                            new Text(addPadding(i, String.valueOf(vec_size).length()) + "," + "0"));
                 }
             }
         }
 
-        private String extractPairFromKey(String key) {
-            String[] split = key.split("\\s+");
-            return split[0] + "\t" + split[1];
+        private String addPadding(int num, int numOfDigits) {
+            String s = String.valueOf(num);
+            int count = 0;
+            while (num != 0) {
+                // num = num/10
+                num /= 10;
+                ++count;
+            }
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < numOfDigits - count; i++) {
+                sb.append(0);
+            }
+            if (!s.equals("0")) sb.append(s);
+            return sb.toString();
         }
 
-        private long extractDpIndexFromKey(String key) {
-            String[] split = key.split("\\s+");
-            return Long.parseLong(split[2].split(Pattern.quote(":"))[0]);
+        private int extractDpIndexFromKey(String key) {
+            return Integer.parseInt(key.split(Pattern.quote(":"))[1]);
         }
     }
 

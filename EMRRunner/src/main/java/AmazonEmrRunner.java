@@ -39,7 +39,7 @@ public class AmazonEmrRunner {
 
 
         // STEP5
-        String[] args5 = {Properties.Step5Arg1, Properties.Step5Arg2, Properties.Step5Arg3};
+        String[] args5 = {Properties.Step5Arg1, Properties.Step5Arg2, Properties.Step5Arg3, Properties.Step5Arg4};
         stepConfigs.add(buildStep(args5, "JoinPairLabel", "Join pairs and labels"));
 
         // STEP6

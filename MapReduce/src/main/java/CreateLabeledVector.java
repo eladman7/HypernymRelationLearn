@@ -76,11 +76,13 @@ public class CreateLabeledVector {
 
         // input: <pair dp_index, count>
         // output: <[2,0,1], true>
-        // todo: if we need to trace back a pair by a vector maybe output <pair, labeled_vector>
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             String keyStr = removeTag(key).toString();
-            String pair = extractPairFromKey(keyStr);
+            String pair = keyStr;
+            if(!keyStr.endsWith(FIRST_TAG)) {
+                pair = extractPairFromKey(keyStr);
+            }
             if (!pair.equals(currentPair)) {
                 if (StringUtils.isNotEmpty(currentPair)) {
                     // write all vector
@@ -103,12 +105,12 @@ public class CreateLabeledVector {
         }
 
         private void writeVector(Context context) throws IOException, InterruptedException {
-            context.write(new Text(vectorStr.toString()), new Text(String.valueOf(currentLabel)));
+            context.write(new Text(currentPair), new Text(vectorStr.append(currentLabel).toString()));
         }
 
         private String extractPairFromKey(String key) {
             String[] split = key.split("\\s+");
-            if (isLabelData(key)) {
+            if (key.endsWith(FIRST_TAG)) {
                 return split[0] + "\t" + split[1];
             }
             return split[0] + "\t" + split[1].split(Pattern.quote(":"))[0];

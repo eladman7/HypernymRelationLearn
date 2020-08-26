@@ -55,6 +55,12 @@ public class MergeVectors {
            @ATTRIBUTE petalwidth   NUMERIC
            @ATTRIBUTE class        {Iris-setosa,Iris-versicolor,Iris-virginica}
         * */
+        private long exampleNumber;
+
+        public void setup(Context context) {
+            exampleNumber = 1;
+        }
+
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             if (key.toString().equals(FIRST_TAG + "KEY")) {
@@ -69,7 +75,13 @@ public class MergeVectors {
                 return;
             }
             for (Text vector : values) {
-                context.write(vector, new Text(""));
+//                chair	aircraft	0,0,false
+                StringBuilder sb = new StringBuilder();
+                String[] split = vector.toString().split("\\s+");
+                sb.append(split[0]).append("\t").append(split[1]);
+                context.write(new Text("%" + exampleNumber), new Text(sb.toString()));
+                context.write(new Text(split[2]), new Text(""));
+                exampleNumber++;
             }
         }
     }

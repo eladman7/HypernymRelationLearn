@@ -1,7 +1,7 @@
 public class Properties {
     // consts
     public static String keyPair = "dsp_key";
-    public static String DPMIN = "5";
+    public static String DPMIN = "150";
     public static Integer NUM_OF_INSTANCES = 9;
     public static String S3_PREFIX = "s3n://";
 
@@ -12,41 +12,43 @@ public class Properties {
 
     // input jars
     public static String firstJarPath = IN_BUCKET + "/MapReduce.jar";
-
     // step1 - FilterAllDpsByDpmin
     // sample file name   /biarcs.05-of-99
-    public static String Step1Arg1 = IN_BUCKET + "/biarcs/biarcs.01-of-99";
-    public static String Step1Arg2 = OUT_BUCKET + "/FilterAllDpsByDpmin_out";
+    public static String Step1Arg1 = IN_BUCKET + "/threebiarcs";
+    public static String Step1Arg2 = OUT_BUCKET + "/FilterAllDpsByDpmin_out_bar";
     public static String Step1Arg3 = DPMIN;
 
-//    // step2 - NumberDps
-//    public static String Step2Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/filteredDps";
-//    public static String Step2Arg2 = OUT_BUCKET + "/NumberDps_out";
-//
-//    // step3 - JoinDpIdsWithPairs
-//    public static String Step3Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out/dpsToPair";
-//    public static String Step3Arg2 = OUT_BUCKET + "/NumberDps_out/dpsToId";
-//    public static String Step3Arg3 = OUT_BUCKET + "/JoinDpIdsWithPairs_out";
-//
+    // step2 - NumberDps
+    public static String Step2Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out_bar/filteredDps";
+    public static String Step2Arg2 = OUT_BUCKET + "/NumberDps_out_bar";
+
+    // step3 - JoinDpIdsWithPairs
+    public static String Step3Arg1 = OUT_BUCKET + "/FilterAllDpsByDpmin_out_bar/dpsToPair";
+    public static String Step3Arg2 = OUT_BUCKET + "/NumberDps_out_bar/dpsToId";
+    public static String Step3Arg3 = OUT_BUCKET + "/NumberDps_out_bar/vecSizes";
+    public static String Step3Arg4 = OUT_BUCKET + "/JoinDpIdsWithPairs_out_bar";
+
 //    // step4 - FindMaxVectorSize
 //    public static String Step4Arg1 = OUT_BUCKET + "/NumberDps_out/vecSizes";
 //    public static String Step4Arg2 = OUT_BUCKET + "/FindMaxVectorSize_out";
-//
-//    // step5 - JoinPairLabel
-//    public static String Step5Arg1 = OUT_BUCKET + "/JoinDpIdsWithPairs_out";
-//    public static String Step5Arg2 = IN_BUCKET + "/hypernym_pairs_annotated.txt";
-//    public static String Step5Arg3 = OUT_BUCKET + "/JoinPairLabel_out";
-//
-//    // step6 - CountDpsPerPair
-//    public static String Step6Arg1 = OUT_BUCKET + "/JoinPairLabel_out";
-//    public static String Step6Arg2 = OUT_BUCKET + "/FindMaxVectorSize_out";
-//    public static String Step6Arg3 = OUT_BUCKET + "/CountDpsPerPair_out";
-//
-//    // step7 - CreateLabeledVector
-//    public static String Step7Arg1 = OUT_BUCKET + "/CountDpsPerPair_out";
-//    public static String Step7Arg2 = OUT_BUCKET + "/CreateLabeledVector_out";
-//
-//    // step8 - MergeVectors
-//    public static String Step8Arg1 = OUT_BUCKET + "/CreateLabeledVector_out";
-//    public static String Step8Arg2 = OUT_BUCKET + "/MergeVectors_out";
+
+    // step5 - JoinPairLabel
+    public static String Step5Arg1 = OUT_BUCKET + "/JoinDpIdsWithPairs_out_bar/pairToNumberedDps";
+    public static String Step5Arg2 = IN_BUCKET + "/hypernym_pairs_annotated.txt";
+    public static String Step5Arg3 = OUT_BUCKET + "/JoinDpIdsWithPairs_out_bar/maxVecSize";
+    public static String Step5Arg4 = OUT_BUCKET + "/JoinPairLabel_out_bar";
+
+    // step6 - CountDpsPerPair
+    public static String Step6Arg1 = OUT_BUCKET + "/JoinPairLabel_out_bar";
+    public static String Step6Arg2 = OUT_BUCKET + "/JoinDpIdsWithPairs_out_bar/maxVecSize";
+    public static String Step6Arg3 = OUT_BUCKET + "/CountDpsPerPair_out_bar";
+
+    // step7 - CreateLabeledVector
+    public static String Step7Arg1 = OUT_BUCKET + "/CountDpsPerPair_out_bar";
+    public static String Step7Arg2 = OUT_BUCKET + "/CreateLabeledVector_out_bar";
+
+    // step8 - MergeVectors
+    public static String Step8Arg1 = OUT_BUCKET + "/CreateLabeledVector_out_bar";
+    public static String Step8Arg2 = OUT_BUCKET + "/JoinDpIdsWithPairs_out_bar/maxVecSize";
+    public static String Step8Arg3 = OUT_BUCKET + "/MergeVectors_out_bar";
 }
