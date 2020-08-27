@@ -13,6 +13,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.regex.Pattern;
 
 /**
@@ -80,7 +81,7 @@ public class CreateLabeledVector {
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             String keyStr = removeTag(key).toString();
             String pair = keyStr;
-            if(!keyStr.endsWith(FIRST_TAG)) {
+            if (!keyStr.endsWith(FIRST_TAG)) {
                 pair = extractPairFromKey(keyStr);
             }
             if (!pair.equals(currentPair)) {
@@ -105,7 +106,15 @@ public class CreateLabeledVector {
         }
 
         private void writeVector(Context context) throws IOException, InterruptedException {
-            context.write(new Text(currentPair), new Text(vectorStr.append(currentLabel).toString()));
+            if (validVector(vectorStr.toString())) {
+                context.write(new Text(currentPair), new Text(vectorStr.append(currentLabel).toString()));
+            }
+        }
+
+        private boolean validVector(String vector) {
+            boolean b = Arrays.stream(vector.split(Pattern.quote(",")))
+                    .allMatch(x -> x.equals("0"));
+            return !b;
         }
 
         private String extractPairFromKey(String key) {

@@ -257,35 +257,35 @@ public class FilterAllDpsByDpmin {
 
         // template: word/POS/dependency_label/pointer
         // input: X/NN/advmod/2-as/JJ/prep/1-X/NN/acomp/0
-        private String cleanDP(String rawDp) {
-            StringBuilder cleanDp = new StringBuilder();
-            String[] nodes = rawDp.split(Pattern.quote("-"));
-            for (String node : nodes) {
-                String[] splittedNode = node.split(Pattern.quote("/"));
-                if (LingusticUtils.isNoun(splittedNode[1]))
-                    cleanDp.append(splittedNode[1]).append("-");
-                else cleanDp.append(splittedNode[3]).append("-");
-            }
-            // remove last '-'
-            cleanDp.deleteCharAt(cleanDp.length() - 1);
-            return cleanDp.toString();
-        }
-
-//        // template: word/POS/dependency_label/pointer
-//        // input: X/NN/advmod/2-as/JJ/prep/1-X/NN/acomp/0
-//        // output: X/advmod-as/prep-X/acomp
 //        private String cleanDP(String rawDp) {
 //            StringBuilder cleanDp = new StringBuilder();
 //            String[] nodes = rawDp.split(Pattern.quote("-"));
 //            for (String node : nodes) {
 //                String[] splittedNode = node.split(Pattern.quote("/"));
-////                cleanDp.append(splittedNode[1]).append("/").append(splittedNode[2]).append("-");
-//                cleanDp.append(splittedNode[1]).append("-");
+//                if (LingusticUtils.isNoun(splittedNode[1]))
+//                    cleanDp.append(splittedNode[1]).append("-");
+//                else cleanDp.append(splittedNode[3]).append("-");
 //            }
 //            // remove last '-'
 //            cleanDp.deleteCharAt(cleanDp.length() - 1);
 //            return cleanDp.toString();
 //        }
+
+        // template: word/POS/dependency_label/pointer
+        // input: X/NN/advmod/2-as/JJ/prep/1-X/NN/acomp/0
+        // output: X/advmod-as/prep-X/acomp
+        private String cleanDP(String rawDp) {
+            StringBuilder cleanDp = new StringBuilder();
+            String[] nodes = rawDp.split(Pattern.quote("-"));
+            for (String node : nodes) {
+                String[] splittedNode = node.split(Pattern.quote("/"));
+//                cleanDp.append(splittedNode[0]).append("/").append(splittedNode[2]).append("-");
+                cleanDp.append(splittedNode[1]).append("-");
+            }
+            // remove last '-'
+            cleanDp.deleteCharAt(cleanDp.length() - 1);
+            return cleanDp.toString();
+        }
 
         // input: X/NN/advmod/2-as/JJ/prep/1-Y/NN/acomp/0
         // output: X/NN/advmod-as/JJ/prep-Y/NN/acomp
