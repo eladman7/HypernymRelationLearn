@@ -42,6 +42,7 @@ public class JoinPairLabel {
     public static class MapperClass extends Mapper<LongWritable, Text, Text, Text> {
         private boolean publishedVecSize;
         private String vec_size;
+
         public void setup(Context context) {
             publishedVecSize = false;
         }
@@ -67,6 +68,7 @@ public class JoinPairLabel {
                 context.write(new Text(splittedGram[0] + "\t" + splittedGram[1] + SECOND_TAG), new Text(value));
             }
         }
+
         @Override
         public void cleanup(Context context) throws IOException, InterruptedException {
             if (publishedVecSize) {
@@ -118,6 +120,7 @@ public class JoinPairLabel {
                 }
             }
         }
+
         private String addPadding(int num, int numOfDigits) {
             String s = String.valueOf(num);
             int count = 0;
@@ -138,7 +141,11 @@ public class JoinPairLabel {
     public static class PartitionerClass extends Partitioner<Text, Text> {
         @Override
         public int getPartition(Text key, Text value, int numPartitions) {
-            return (removeTag(key).hashCode() & Integer.MAX_VALUE) % numPartitions;
+            if (key.toString().startsWith(VEC_SIZE_TAG)) {
+                return (Integer.valueOf(removeTag(key)).hashCode() & Integer.MAX_VALUE) % numPartitions;
+            } else {
+                return (removeTag(key).hashCode() & Integer.MAX_VALUE) % numPartitions;
+            }
         }
     }
 
