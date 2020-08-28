@@ -1,59 +1,106 @@
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.*;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
+import weka.classifiers.functions.SGD;
+import weka.classifiers.trees.J48;
 import weka.core.Instances;
-import weka.core.converters.CSVLoader;
+import weka.core.converters.ArffLoader;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.io.*;
+import java.util.*;
 
 public class Weka {
     // args:
-    // 0- number of folds
+    // 0- path to arff file
+
     public static void main(String[] args) throws Exception {
-        S3ObjectInputStream inputStream = getExamplesFile();
-
-        CSVLoader loader = new CSVLoader();
-        loader.setSource(inputStream);
-        loader.setNoHeaderRowPresent(true);
-
+//         load data
+        ArffLoader loader = new ArffLoader();
+        loader.setFile(new File(args[0]));
         Instances instances = loader.getDataSet();
         instances.setClassIndex(instances.numAttributes() - 1);
 
-        Classifier m = new NaiveBayes();
-        m.buildClassifier(instances);
-
+        // cross validate a model
+        Classifier classifier = new J48();
+//        classifier.buildClassifier(instances);
         Evaluation eval = new Evaluation(instances);
-        eval.crossValidateModel(m, instances, Integer.parseInt(args[0]), new Random(1));
-
+        eval.crossValidateModel(classifier, instances, 10, new Random(1));
         System.out.println(eval.toSummaryString());
-    }
+        System.out.println(eval.toClassDetailsString());
+//        System.out.println(eval.);
 
-    private static S3ObjectInputStream getExamplesFile() throws Exception {
-        String bucketName = "ass3-output-bucket";
-        ListObjectsRequest listObjectsRequest =
-                new ListObjectsRequest()
-                        .withBucketName(bucketName)
-                        .withPrefix("MergeVectors_out" + "/");
-        List<String> keys = new ArrayList<>();
-        AmazonS3 s3Client = AmazonS3Client.builder().withRegion(Regions.US_EAST_1).build();
-        ObjectListing objects = s3Client.listObjects(listObjectsRequest);
-        // retrieves up to 1k of file summaries. no need for batching
-        List<S3ObjectSummary> summaries = objects.getObjectSummaries();
-        if (summaries.size() < 1) {
-            throw new Exception("Error: no files in cluster output folder");
-        }
-        summaries.stream().filter(summary -> summary.getSize() > 0)
-                .forEach(s -> keys.add(s.getKey()));
-        if (keys.size() != 1) {
-            throw new Exception("Error: number of relevant files is different from 1");
-        }
-        S3Object csvFile = s3Client.getObject(new GetObjectRequest(bucketName, keys.get(0)));
-        return csvFile.getObjectContent();
+        // build a map of:
+        // pair -> [true_label, prediction]
+        //todo:maybe needed here: classifier.buildClassifier(instances);
+//        Map<String, Boolean[]> pairToLabels = new HashMap<>();
+//        int index = 0;
+//        try (BufferedReader br = new BufferedReader(new FileReader(args[0]))) {
+//            String line;
+//            String currentPair = null;
+//            Boolean[] labels = new Boolean[2];
+//            Boolean gotTrueLabel = false;
+//            while ((line = br.readLine()) != null) {
+//                if (gotTrueLabel) {
+//                    labels = new Boolean[2];
+//                    currentPair = null;
+//                    gotTrueLabel = false;
+//                }
+//                if (line.startsWith("%")) {
+//                    currentPair = line.split("\\s+")[1] + "\t" + line.split("\\s+")[2];
+//                    double v = classifier.classifyInstance(instances.get(index));
+//                    labels[1] = (v == 1);
+//                    index++;
+//                }
+//                if ((line.toLowerCase().contains("true") || line.toLowerCase().contains("false")) && (!line.contains("class"))) {
+//                    if (line.toLowerCase().contains("true")) {
+//                        labels[0] = true;
+//                    } else {
+//                        labels[0] = false;
+//                    }
+//                    pairToLabels.put(currentPair, labels);
+//                    gotTrueLabel = true;
+//                }
+//            }
+//        }
+//        // collect from model 5 pairs for each category: tn, fn, tp, fp
+//        Boolean pred, label;
+//        int fp_count = 0, tp_count = 0, fn_count = 0, tn_count = 0;
+//        for (String pair : pairToLabels.keySet()) {
+//            if (pair == null) continue;
+//            Boolean[] labels = pairToLabels.get(pair);
+//            pred = labels[1];
+//            label = labels[0];
+//            // alg say false when label is false - true negative
+//            if (!pred && !label) {
+//                if (tn_count < 5) {
+//                    System.out.println("tn: " + pair);
+//                    tn_count++;
+//                }
+//            }
+//            // alg say false when label is true - false negative
+//            else if (!pred && label) {
+//                if (fn_count < 5) {
+//                    System.out.println("fn: " + pair);
+//                    fn_count++;
+//                }
+//            }
+//            // alg say true when label is true - true positive
+//            else if (pred && label) {
+//                if (tp_count < 5) {
+//                    System.out.println("tp: " + pair);
+//                    tp_count++;
+//                }
+//            }
+//            // alg say true when label is false - false positive
+//            else if (pred && !label) {
+//                if (fp_count < 5) {
+//                    System.out.println("fp: " + pair);
+//                    fp_count++;
+//                }
+//            }
+//            if (fp_count == 5 && tp_count == 5 && fn_count == 5 && tn_count == 5)
+//                break;
+//        }
+//        System.out.println("end");
     }
 }
